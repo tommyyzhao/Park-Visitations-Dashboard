@@ -1,5 +1,6 @@
 import React from 'react';
 import Autosuggest from 'react-autosuggest';
+import Fuse from "fuse.js"
 import Typography from '@material-ui/core/Typography';
 import Box from '@material-ui/core/Box';
 //import { debounce } from 'throttle-debounce';
@@ -11,13 +12,15 @@ class AutoComplete extends React.Component {
         suggestions: []
     }
 
-    componentDidMount() {
-        /*
-        this.onSuggestionsFetchRequested = debounce(
-            500,
-            this.onSuggestionsFetchRequested
-        )*/
-    }
+    constructor(props) {
+        super(props);
+        // initialize Fuse database with Park POI data
+        this.database = new Fuse(require("../../data/park_pois.json"), {
+            keys: ["name_location"],
+            shouldSort: true,
+            minMatchCharLength: 1
+        })
+      }
 
     renderSuggestion = suggestion => {
         return (
@@ -28,30 +31,27 @@ class AutoComplete extends React.Component {
     }
 
     onChange = (event, { newValue }) => {
-        this.setState({ value: newValue });
+        this.setState({ value: newValue })
     }
 
+   
     onKeyUp = (e) => {
+         // when Enter button is pressed
         if (e.charCode === 13 || e.keyCode === 13) {
-            this.props.setSearch({ searchTerms: this.state.value });
+            // return the Park POI object
+            let park_info = this.database.search(this.state.value)[0].item
+            this.props.setSearch({ selectedPark: park_info })
         }
     }
 
+    // function to get suggestions from park database
     onSuggestionsFetchRequested = ({ value }) => {
-        let url ='&c=';
-        fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                let results = [];
-                for (let i = 0; i < data.length; i++) {
-                    results.push(data[i]);
-                }
-                this.setState({ suggestions: results });
-            })
-            .catch(err => {
-                // Do something for an error here
-                console.log("Error Reading data " + err);
-            });
+        let results = []
+        let data = this.database.search(value).slice(0, 6)
+        for (let i = 0; i < data.length; i++) {
+            results.push(data[i].item.name_location);
+        }
+        this.setState({ suggestions: results })
     }
 
     onSuggestionsClearRequested = () => {

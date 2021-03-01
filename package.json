@@ -8,6 +8,7 @@
     "@testing-library/react": "^11.2.5",
     "@testing-library/user-event": "^12.7.3",
     "deck.gl": "^8.4.9",
+    "fuse.js": "^6.4.6",
     "mapbox-gl": "^2.1.1",
     "node-sass": "^5.0.0",
     "react": "^17.0.1",

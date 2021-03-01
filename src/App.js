@@ -14,13 +14,11 @@ class App extends React.Component {
   setSearch = (params) => {
     let newParams = {};
     // check if searchTerms has been updated
-    if (params.searchTerms) {
-      newParams['searchTerms'] = params.searchTerms;
-    }
-    if (params.searchTerms === '') {
-      newParams['searchTerms'] = ' ';
+    if (params.selectedPark) {
+      newParams['selectedPark'] = params.selectedPark;
     }
     if (newParams) {
+      console.log(newParams)
       this.setState(newParams);
     }
   }
