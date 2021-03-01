@@ -21,7 +21,7 @@ class MapComponent extends React.PureComponent {
       center: [this.state.lng, this.state.lat],
       zoom: this.state.zoom
     });
-
+    
     map.on("move", () => {
       this.setState({
         lng: map.getCenter().lng.toFixed(4),
@@ -32,14 +32,21 @@ class MapComponent extends React.PureComponent {
   }
 
   render() {
+    const { lng, lat, zoom } = this.state;
     return (
-      <div
-        id="map"
-        style={{
-          position: "relative",
-          height: "100vh"
-        }}
-      />
+      <div>
+        <div className="sidebar">
+            Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+        </div>
+        <div
+          id="map"
+          style={{
+            position: "relative",
+            height: "100vh"
+          }}>
+        </div>
+      </div>
+      
     );
   }
 }
