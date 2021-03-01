@@ -1,6 +1,7 @@
 import React from "react"
 import MapComponent from "./components/MapComponent/MapComponent"
 import AutoComplete from "./components/AutoComplete/AutoComplete"
+import CustomizedSlider from "./components/TimeSlider/TimeSlider"
 
 import logo from './logo.svg'
 import "./App.scss";
@@ -34,14 +35,23 @@ class App extends React.Component {
         <Grid item xs={3} >
           <Grid container spacing={0}>
             <Grid item xs={12}>
-              <AutoComplete
-                setSearch={this.setSearch} />
+              <Grid container spacing={1}>
+                <Grid item xs={12}>
+                  <AutoComplete
+                    setSearch={this.setSearch} />
+                </Grid>
+                <Grid item xs={12}>
+                  <CustomizedSlider
+                    setSearch={this.setSearch} />
+                </Grid>
+              </Grid>
+              
             </Grid>
             <Grid item xs={12} style={{ 'height': '100%' }}>
               <header className="App-header">
                 <img src={logo} className="App-logo" alt="logo" />
                 <p>
-                  Charts & stuff should go here
+                  Charts 'n stuff should go here
                 </p>
               </header>
             </Grid>
