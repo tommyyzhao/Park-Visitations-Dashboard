@@ -24,9 +24,11 @@ class App extends React.Component {
   }
   
   render() {
+    console.log(this.state)
     return (
       // Render components in a Grid
       <Grid container spacing={0} style={{ 'height': '100vh' }}>
+        {this.state !== null && this.state.selectedPark !== null && <div className="sidebar-selected">Selected park: {this.state.selectedPark.name_location}</div>}
         <Grid item xs={9}>
           <MapComponent /> 
         </Grid>
