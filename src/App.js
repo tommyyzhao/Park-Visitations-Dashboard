@@ -1,4 +1,5 @@
 import React from "react"
+import VisitationChart from "./components/VisitationChart/VisitationChart"
 import MapComponent from "./components/MapComponent/MapComponent"
 import AutoComplete from "./components/AutoComplete/AutoComplete"
 import CustomizedSlider from "./components/TimeSlider/TimeSlider"
@@ -24,14 +25,10 @@ class App extends React.Component {
   }
   
   render() {
-    console.log(this.state)
+    //console.log(this.state)
     return (
       // Render components in a Grid
       <Grid container spacing={0} style={{ 'height': '100vh' }}>
-        {this.state !== null && this.state.selectedPark !== null && <div className="sidebar-selected">Selected park: {this.state.selectedPark.name_location}</div>}
-        <Grid item xs={9}>
-          <MapComponent /> 
-        </Grid>
         <Grid item xs={3} >
           <Grid container spacing={0}>
             <Grid item xs={12}>
@@ -48,14 +45,13 @@ class App extends React.Component {
               
             </Grid>
             <Grid item xs={12} style={{ 'height': '100%' }}>
-              <header className="App-header">
-                <img src={logo} className="App-logo" alt="logo" />
-                <p>
-                  Charts 'n stuff should go here
-                </p>
-              </header>
+              <VisitationChart />
             </Grid>
           </Grid>
+        </Grid>
+        <Grid item xs={9}>
+          {this.state && this.state.selectedPark && this.state.selectedPark.name_location && <div className="sidebar-selected">Selected park: {this.state.selectedPark.name_location}</div>}
+          <MapComponent /> 
         </Grid>
       </Grid>
     );

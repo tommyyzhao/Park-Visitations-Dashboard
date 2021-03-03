@@ -12,11 +12,12 @@ class MapComponent extends React.PureComponent {
       lat: 40.8,
       zoom: 7
     };
+    this.mapContainer = React.createRef();
   }
 
   componentDidMount() {
     const map = new mapboxgl.Map({
-      container: "map",
+      container: this.mapContainer.current,
       style: "mapbox://styles/mapbox/light-v9",
       center: [this.state.lng, this.state.lat],
       zoom: this.state.zoom
@@ -39,9 +40,9 @@ class MapComponent extends React.PureComponent {
             Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
         </div>
         <div
-          id="map"
+          ref={this.mapContainer}
+          className="map-container"
           style={{
-            position: "relative",
             height: "100vh"
           }}>
         </div>
