@@ -1,0 +1,13 @@
+.titleContainer {
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    background-color: #041E42;
+    padding-left: 1em; //space between left edge and container contents
+}
+
+.title {
+    width: 100%;
+    color: white;
+    font-family: 'Courier New', Courier, monospace; //DECIDE ON FONT
+}
