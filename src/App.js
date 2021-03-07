@@ -5,7 +5,7 @@ import MapComponent from "./components/MapComponent/MapComponent"
 import AutoComplete from "./components/AutoComplete/AutoComplete"
 import CustomizedSlider from "./components/TimeSlider/TimeSlider"
 
-import logo from './logo.svg'
+//import logo from './logo.svg' // commented out to stop compile warning
 import "./App.scss";
 import Grid from '@material-ui/core/Grid';
 

@@ -1,13 +1,20 @@
 .titleContainer {
     box-sizing: border-box;
     width: 100%;
+    height: 50px;
     display: flex;
     background-color: #041E42;
-    padding-left: 1em; //space between left edge and container contents
+    padding-left: 1em; // space between left edge and container contents
+    //margin-bottom: 5px; // space between bottom of the container and the components below
+}
+
+.psu_logo {
+    object-fit: contain;
+    margin-right: 1em; // space between logo and title
 }
 
 .title {
     width: 100%;
     color: white;
-    font-family: 'Courier New', Courier, monospace; //DECIDE ON FONT
+    font-family: 'Courier New', Courier, monospace; // DECIDE ON FONT
 }
