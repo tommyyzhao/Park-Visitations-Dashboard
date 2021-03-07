@@ -1,6 +1,5 @@
 import React from "react"
 import mapboxgl from "mapbox-gl"
-import './styles.scss';
 
 
 mapboxgl.accessToken =
