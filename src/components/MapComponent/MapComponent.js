@@ -11,9 +11,9 @@ class MapComponent extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      lng: -77.86,
-      lat: 40.8,
-      zoom: 7
+      lng: -97,
+      lat: 38,
+      zoom: 4
     };
     this.mapContainer = React.createRef();
   }
@@ -22,8 +22,8 @@ class MapComponent extends React.PureComponent {
     this.map = new mapboxgl.Map({
       container: this.mapContainer.current,
       style: "mapbox://styles/mapbox/light-v9",
-      center: [-97, 38], //[this.state.lng, this.state.lat],
-      zoom: 4 //this.state.zoom
+      center: [this.state.lng, this.state.lat],
+      zoom: this.state.zoom
     });
 
 
@@ -33,6 +33,12 @@ class MapComponent extends React.PureComponent {
       zoom: this.map.getZoom().toFixed(2)
     });
 
+    this.map.on("move", () => {
+      this.setState({
+        lng: this.map.getCenter().lng.toFixed(4),
+        lat: this.map.getCenter().lat.toFixed(4),
+        zoom: this.map.getZoom().toFixed(2)})
+      });
 
     this.map.on("load", () => {
 
