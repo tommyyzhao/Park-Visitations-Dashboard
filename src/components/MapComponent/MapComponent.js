@@ -1,5 +1,7 @@
 import React from "react"
 import mapboxgl from "mapbox-gl"
+import { MapboxLayer } from '@deck.gl/mapbox'
+import {ScatterplotLayer} from '@deck.gl/layers';
 
 
 mapboxgl.accessToken =
@@ -15,6 +17,8 @@ class MapComponent extends React.PureComponent {
       zoom: 4
     };
     this.mapContainer = React.createRef();
+    // mapbox layer
+    
   }
 
   componentDidMount() {
@@ -41,178 +45,37 @@ class MapComponent extends React.PureComponent {
 
     this.map.on("load", () => {
 
+      
+      const visitationChangeLayer = new MapboxLayer({
+        id: 'my-scatterplot',
+        type: ScatterplotLayer,
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/change_in_visitor_counts.json',
+        getPosition: d => [d.longitude, d.latitude],
+        getRadius: d => {
+          if (d.percent_change) {
+            return Math.round(Math.sqrt(Math.abs(d.percent_change) * 100000))+500
+          } else {
+            return 500
+          }
+        },
+        getColor: d => {
+          if (d.percent_change) {
+            if (d.percent_change > 0) {
+              return [50, 240, 50, 120]
+            } else {
+              return [240, 50, 50, 120]
+            }
+          } else {
+            return [192, 192, 192] // return gray if no data
+          }
+        }
+      });
+
+      this.map.addLayer(visitationChangeLayer)
+
       this.map.addSource('national', {
         type: 'geojson',
-        data: {
-           type: "FeatureCollection",
-           features: [
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -124.137765,43.984847 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:58bfb9ed5fb646fdad91d44be690db40",
-            location_name:"Sand Dunes National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -155.256958,19.429665 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:2bb1c1290b6b494e82be0098b30ad724",
-            location_name:"Hawai'i Volcanoes National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -90.796964,44.959408 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:48f09f62ad5e4aada7cc7ef380b6a18a",
-            location_name:"Yellowstone Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -121.22864,37.788676 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:722629f32b574f78abf6b8065bef5314",
-            location_name:"Sequoia Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -83.596999,35.964355 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:f74aced14847493eb71d543207d86192",
-            location_name:"Friends of Great Smoky Mountains National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -104.821761,31.894305 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:acbeed2c270445179089c2a6c71d4c3e",
-            location_name:"Guadalupe Mountains National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -112.980554,37.209266 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:1fe8d44ad47149618c97069051b154ba",
-            location_name:"Zion National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -77.033165,38.712606 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:c11b871760f24551bdd201b7c675fee0",
-            location_name:"Fort Washington National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -93.098315,34.514493 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:1ad959f392d94b2b98de6c3cb1daee6c",
-            location_name:"Hot Springs National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -84.46666,33.599336 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:917b5d0970004160a137f9d8172d50cf",
-            location_name:"Old National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -80.179572,25.880959 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:27195c18e3d241eab42c187267a9280b",
-            location_name:"Biscayne Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -77.264876,38.938278 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:b28d662fb742474dba7c2594529c4bdc",
-            location_name:"Wolf Trap Farm Park National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -110.63942,43.736796 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:75deacb1155b4dcbba46853c37fd478f",
-            location_name:"Grand Teton National Park"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -123.439636,48.118895 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:35af1521d33040d2a63d80e2abed2b48",
-            location_name:"Experience Olympic"
-            }
-          },
-          {
-            type: "Feature",
-            geometry: {
-               type: "Point",
-               coordinates:  [ -105.521732,40.377384 ]
-            },
-            properties: {
-            safegraph_place_id:"sg:ae3763d376d94a5ea5fd186b45bc0ff9",
-            location_name:"Rocky Mountain National Park"
-            }
-          }
-        ]
-        }
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/national_poi.geojson'
         });
 
       this.map.addLayer({
@@ -223,7 +86,7 @@ class MapComponent extends React.PureComponent {
         //  visibility: 'none',
         //},
         paint: {
-          'circle-radius': 8,
+          'circle-radius': ['get', 'percent_change'],
           'circle-color': '#40BF45',
           'circle-opacity': 0.7
         },
@@ -248,6 +111,7 @@ class MapComponent extends React.PureComponent {
         }
       }
       });
+
     });
   }
 
