@@ -66,7 +66,7 @@ class MapComponent extends React.PureComponent {
               return [240, 50, 50, 120]
             }
           } else {
-            return [192, 192, 192] // return gray if no data
+            return [192, 192, 192, 80] // return gray if no data
           }
         }
       });
@@ -75,9 +75,10 @@ class MapComponent extends React.PureComponent {
 
       this.map.addSource('national', {
         type: 'geojson',
-        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/national_poi.geojson'
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/visitor_counts_change.geojson'
         });
 
+      /*
       this.map.addLayer({
         id: 'national_parks',
         type: 'circle',
@@ -90,7 +91,7 @@ class MapComponent extends React.PureComponent {
           'circle-color': '#40BF45',
           'circle-opacity': 0.7
         },
-      });
+      });*/
 
       this.map.addLayer({
         'id': 'poi-labels',
@@ -104,9 +105,13 @@ class MapComponent extends React.PureComponent {
             "stops": [
                 [0, 0],
                 [3, 0],
-                [4, 10],
-                [5, 15],
-                [7, 20]
+                [4, 0],
+                [5, 0],
+                [6, 0],
+                [7, 0],
+                [8, 0],
+                [10, 4],
+                [12, 8],
             ]
         }
       }
