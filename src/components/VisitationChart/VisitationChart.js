@@ -25,13 +25,27 @@ class VisitationChart extends React.PureComponent {
     }
 
     chart.data = data;
+    
+    var title = chart.titles.create();
+    title.text = "Visitation Chart"; // CHART TITLE
+    title.fontWeight = "bold";
+    title.fontSize = 16;
+    title.fontFamily = "Courier New";
 
     let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
     dateAxis.renderer.grid.template.location = 0;
+    dateAxis.title.text = "Date"; // X-AXIS LABEL
+    dateAxis.title.fontWeight = "bold";
+    dateAxis.title.fontSize = 12;
+    dateAxis.title.fontFamily = "Courier New";
 
     let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
     valueAxis.tooltip.disabled = true;
     valueAxis.renderer.minWidth = 35;
+    valueAxis.title.text = "Visitation count"; // Y-AXIS LABEL
+    valueAxis.title.fontWeight = "bold";
+    valueAxis.title.fontSize = 12;
+    valueAxis.title.fontFamily = "Courier New";
 
     let series = chart.series.push(new am4charts.LineSeries());
     series.dataFields.dateX = "date";
