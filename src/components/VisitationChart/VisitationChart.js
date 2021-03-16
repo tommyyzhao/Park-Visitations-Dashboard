@@ -25,7 +25,7 @@ class VisitationChart extends React.PureComponent {
     }
 
     chart.data = data;
-    
+
     var title = chart.titles.create();
     title.text = "Visitation Chart"; // CHART TITLE
     title.fontWeight = "bold";
@@ -42,7 +42,7 @@ class VisitationChart extends React.PureComponent {
     let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
     valueAxis.tooltip.disabled = true;
     valueAxis.renderer.minWidth = 35;
-    valueAxis.title.text = "Visitation count"; // Y-AXIS LABEL
+    valueAxis.title.text = "Visitation counts"; // Y-AXIS LABEL
     valueAxis.title.fontWeight = "bold";
     valueAxis.title.fontSize = 12;
     valueAxis.title.fontFamily = "Courier New";

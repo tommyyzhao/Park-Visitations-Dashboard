@@ -18,7 +18,7 @@ class MapComponent extends React.PureComponent {
     };
     this.mapContainer = React.createRef();
     // mapbox layer
-    
+
   }
 
   componentDidMount() {
@@ -45,30 +45,51 @@ class MapComponent extends React.PureComponent {
 
     this.map.on("load", () => {
 
-      
+
       const visitationChangeLayer = new MapboxLayer({
         id: 'my-scatterplot',
         type: ScatterplotLayer,
         data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/change_in_visitor_counts.json',
         getPosition: d => [d.longitude, d.latitude],
-        getRadius: d => {
+        getRadius: 500,/*d => {
           if (d.percent_change) {
             return Math.round(Math.sqrt(Math.abs(d.percent_change) * 100000))+500
           } else {
             return 500
           }
-        },
+        }, */
         getColor: d => {
-          if (d.percent_change) {
-            if (d.percent_change > 0) {
-              return [50, 240, 50, 120]
-            } else {
-              return [240, 50, 50, 120]
-            }
-          } else {
-            return [192, 192, 192, 80] // return gray if no data
-          }
-        }
+              //if (d.percent_change) {
+                if (d.percent_change > 1) {
+                  return [10, 41, 10, 180]
+                }
+                else if (d.percent_change > 0.5) {
+                  return [25, 103, 25, 180]
+                }
+                else if (d.percent_change > 0.3) {
+                  return [45, 185, 45, 180]
+                }
+                else if (d.percent_change > 0) {
+                  return [193, 240, 193, 180]
+                }
+                else if (d.percent_change > -0.3) {
+                  return [255, 179, 179, 180]
+                }
+                else if (d.percent_change > -0.5) {
+                  return [255, 77, 77, 180]
+                }
+                else if (d.percent_change > -1) {
+                  return [230, 0, 0, 180]
+                }
+                else {
+                  return [128, 0, 0, 180]
+                }
+              }
+
+            //else {
+            //    return [192, 192, 192, 0] // return gray if no data 80
+            //}
+        //}
       });
 
       this.map.addLayer(visitationChangeLayer)
