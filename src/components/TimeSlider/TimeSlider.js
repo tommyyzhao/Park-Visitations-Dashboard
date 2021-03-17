@@ -195,7 +195,7 @@ class CustomizedSlider extends React.Component {
         return (
             <Tooltip classes={{
                 tooltip: classes.tooltip
-            }} open={true} placement="bottom" title={this.label} >
+            }} onOpen={true} placement="bottom" title={this.label} >
                 {children}
             </Tooltip>
         );
