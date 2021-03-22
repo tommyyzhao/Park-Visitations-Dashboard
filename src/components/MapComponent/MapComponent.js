@@ -1,7 +1,7 @@
 import React from "react"
 import mapboxgl from "mapbox-gl"
-import { MapboxLayer } from '@deck.gl/mapbox'
-import {ScatterplotLayer} from '@deck.gl/layers';
+//import { MapboxLayer } from '@deck.gl/mapbox'
+//import {ScatterplotLayer} from '@deck.gl/layers';
 
 
 mapboxgl.accessToken =
@@ -22,7 +22,7 @@ class MapComponent extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.map = new mapboxgl.Map({
+    var map = new mapboxgl.Map({
       container: this.mapContainer.current,
       style: "mapbox://styles/mapbox/outdoors-v11",
       center: [this.state.lng, this.state.lat],
@@ -31,26 +31,26 @@ class MapComponent extends React.PureComponent {
 
 
     this.setState({
-      lng: this.map.getCenter().lng.toFixed(4),
-      lat: this.map.getCenter().lat.toFixed(4),
-      zoom: this.map.getZoom().toFixed(2)
+      lng: map.getCenter().lng.toFixed(4),
+      lat: map.getCenter().lat.toFixed(4),
+      zoom: map.getZoom().toFixed(2)
     });
 
-    this.map.on("move", () => {
+    map.on("move", () => {
       this.setState({
-        lng: this.map.getCenter().lng.toFixed(4),
-        lat: this.map.getCenter().lat.toFixed(4),
-        zoom: this.map.getZoom().toFixed(2)})
+        lng: map.getCenter().lng.toFixed(4),
+        lat: map.getCenter().lat.toFixed(4),
+        zoom: map.getZoom().toFixed(2)})
       });
 
-    this.map.on("load", () => {
-      this.map.addSource('all_parks', {
+    map.on("load", () => {
+      map.addSource('all_parks', {
         type: 'geojson',
         data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/visitor_counts.geojson'
         });
 
-      
-      this.map.addLayer({
+
+      map.addLayer({
         id: 'poi-locations',
         type: 'circle',
         source: 'all_parks',
@@ -86,7 +86,7 @@ class MapComponent extends React.PureComponent {
         },
       });
 
-      this.map.addLayer({
+      map.addLayer({
         'id': 'poi-labels',
         'type': 'symbol',
         'source': 'all_parks',
@@ -112,6 +112,39 @@ class MapComponent extends React.PureComponent {
       });
 
     });
+
+    // Create a popup, but don't add it to the map yet.
+    var popup = new mapboxgl.Popup({
+      closeButton: false,
+      closeOnClick: false
+    });
+
+    map.on('mouseenter', 'poi-locations', function (e) {
+      map.getCanvas().style.cursor = 'pointer';
+
+      var coordinates = e.features[0].geometry.coordinates.slice();
+      var name = e.features[0].properties.location_name;
+      var city = e.features[0].properties.city;
+      var state = e.features[0].properties.region;
+      var pre2020 = e.features[0].properties.visitor_counts_pre2020;
+      var post2020 = e.features[0].properties.visitor_counts_post2020;
+      var change = e.features[0].properties.percent_change;
+
+      // Ensure that if the map is zoomed out such that multiple copies of the feature are visible, the popup appears over the copy being pointed to.
+      while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+        coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+      }
+
+      // Populate the popup and set its coordinates based on the feature found.
+      popup.setLngLat(coordinates).setHTML(`<p> Park Name: ${name} <br></p> <p> City: ${city} <br></p> <p> State: ${state} <br></p> <p> Average Visitor Counts Pre2020: ${pre2020} <br></p>
+                                            <p> Average Visitor Counts Post2020: ${post2020} <br></p> <p> Percent Change: ${change} </p>`).addTo(map);
+    });
+
+    map.on('mouseleave', 'poi-locations', function () {
+      map.getCanvas().style.cursor = '';
+      popup.remove();
+    });
+
   }
 
 
