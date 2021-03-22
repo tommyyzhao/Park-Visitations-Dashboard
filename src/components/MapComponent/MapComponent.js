@@ -24,7 +24,7 @@ class MapComponent extends React.PureComponent {
   componentDidMount() {
     this.map = new mapboxgl.Map({
       container: this.mapContainer.current,
-      style: "mapbox://styles/mapbox/light-v9",
+      style: "mapbox://styles/mapbox/outdoors-v11",
       center: [this.state.lng, this.state.lat],
       zoom: this.state.zoom
     });
@@ -44,98 +44,71 @@ class MapComponent extends React.PureComponent {
       });
 
     this.map.on("load", () => {
-
-
-      const visitationChangeLayer = new MapboxLayer({
-        id: 'my-scatterplot',
-        type: ScatterplotLayer,
-        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/change_in_visitor_counts.json',
-        getPosition: d => [d.longitude, d.latitude],
-        getRadius: 500,/*d => {
-          if (d.percent_change) {
-            return Math.round(Math.sqrt(Math.abs(d.percent_change) * 100000))+500
-          } else {
-            return 500
-          }
-        }, */
-        getColor: d => {
-              //if (d.percent_change) {
-                if (d.percent_change > 1) {
-                  return [10, 41, 10, 180]
-                }
-                else if (d.percent_change > 0.5) {
-                  return [25, 103, 25, 180]
-                }
-                else if (d.percent_change > 0.3) {
-                  return [45, 185, 45, 180]
-                }
-                else if (d.percent_change > 0) {
-                  return [193, 240, 193, 180]
-                }
-                else if (d.percent_change > -0.3) {
-                  return [255, 179, 179, 180]
-                }
-                else if (d.percent_change > -0.5) {
-                  return [255, 77, 77, 180]
-                }
-                else if (d.percent_change > -1) {
-                  return [230, 0, 0, 180]
-                }
-                else {
-                  return [128, 0, 0, 180]
-                }
-              }
-
-            //else {
-            //    return [192, 192, 192, 0] // return gray if no data 80
-            //}
-        //}
-      });
-
-      this.map.addLayer(visitationChangeLayer)
-
-      this.map.addSource('national', {
+      this.map.addSource('all_parks', {
         type: 'geojson',
-        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/visitor_counts_change.geojson'
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/visitor_counts.geojson'
         });
 
-      /*
+      
       this.map.addLayer({
-        id: 'national_parks',
+        id: 'poi-locations',
         type: 'circle',
-        source: 'national',
-        //layout: {
-        //  visibility: 'none',
-        //},
+        source: 'all_parks',
+        minzoom: 7,
         paint: {
-          'circle-radius': ['get', 'percent_change'],
-          'circle-color': '#40BF45',
-          'circle-opacity': 0.7
+          'circle-radius': [
+              'interpolate',
+              ['linear'],
+              ['get', 'visitor_counts_post2020'],
+              1,
+              2,
+              10,
+              4,
+              100,
+              8,
+              1000,
+              16,
+              10000,
+              32
+            ],
+          'circle-blur': 0.5,
+          'circle-color': [
+            'interpolate',
+            ['linear'],
+            ['get', 'percent_change'],
+            -1,
+            'rgba(225,19,19,0.8)',
+            0,
+            'rgba(225,225,19,0.5)',
+            1,
+            'rgba(19,225,19,0.8)'
+            ]
         },
-      });*/
+      });
 
       this.map.addLayer({
         'id': 'poi-labels',
         'type': 'symbol',
-        'source': 'national',
+        'source': 'all_parks',
+        'minzoom': 5,
         'layout': {
-        'text-field': ['get', 'location_name'],
-        'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
-        'text-radial-offset': 0.8,
-        "text-size": {
-            "stops": [
-                [0, 0],
-                [3, 0],
-                [4, 0],
-                [5, 0],
-                [6, 0],
-                [7, 0],
-                [8, 0],
-                [10, 4],
-                [12, 8],
-            ]
+          'text-field': ['get', 'location_name'],
+          'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+          'text-radial-offset': 0.8,
+          "text-size": {
+              "stops": [
+                  [0, 0],
+                  [3, 0],
+                  [4, 0],
+                  [5, 0],
+                  [6, 0],
+                  [7, 0],
+                  [8, 0],
+                  [10, 6],
+                  [12, 12],
+              ]
+          }
         }
-      }
       });
 
     });
