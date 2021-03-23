@@ -49,29 +49,30 @@ class MapComponent extends React.PureComponent {
         data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/visitor_counts.geojson'
         });
 
-
+      // add layer of parks with percent-change data
       map.addLayer({
         id: 'poi-locations',
         type: 'circle',
         source: 'all_parks',
-        minzoom: 7,
+        filter: ['has', 'percent_change'],
+        minzoom: 8,
         paint: {
           'circle-radius': [
               'interpolate',
               ['linear'],
-              ['get', 'visitor_counts_post2020'],
+              ['get', 'visitor_counts_pre2020'],
               1,
-              2,
+              3,
               10,
-              4,
+              6,
               100,
-              8,
+              12,
               1000,
-              16,
+              24,
               10000,
               32
             ],
-          'circle-blur': 0.5,
+          'circle-blur': 0.4,
           'circle-color': [
             'interpolate',
             ['linear'],
@@ -86,11 +87,39 @@ class MapComponent extends React.PureComponent {
         },
       });
 
+      // add layer of parks with percent-change data
+      map.addLayer({
+        id: 'poi-locations-no-data',
+        type: 'circle',
+        source: 'all_parks',
+        filter: ['!', ['has', 'percent_change']],
+        minzoom: 8,
+        paint: {
+          'circle-radius': [
+              'interpolate',
+              ['linear'],
+              ['get', 'visitor_counts_pre2020'],
+              1,
+              3,
+              10,
+              6,
+              100,
+              12,
+              1000,
+              24,
+              10000,
+              32
+            ],
+          'circle-blur': 0.1,
+          'circle-color': 'rgba(162,162,162,0.4)'
+        },
+      });
+
       map.addLayer({
         'id': 'poi-labels',
         'type': 'symbol',
         'source': 'all_parks',
-        'minzoom': 5,
+        'minzoom': 10,
         'layout': {
           'text-field': ['get', 'location_name'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
@@ -134,10 +163,14 @@ class MapComponent extends React.PureComponent {
       while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
         coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
       }
+      
+      pre2020 = pre2020 ? pre2020 : "no data"
+      post2020 = post2020 ? post2020 : "no data"
+      change = change ? change : "no data"
 
       // Populate the popup and set its coordinates based on the feature found.
-      popup.setLngLat(coordinates).setHTML(`<p> Park Name: ${name} <br></p> <p> City: ${city} <br></p> <p> State: ${state} <br></p> <p> Average Visitor Counts Pre2020: ${pre2020} <br></p>
-                                            <p> Average Visitor Counts Post2020: ${post2020} <br></p> <p> Percent Change: ${change} </p>`).addTo(map);
+      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${city}, ${state} <p> <b>Average Monthly Visitors</b> <br> Pre-2020: ${pre2020} <br>
+                                            Post-2020: ${post2020} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
     });
 
     map.on('mouseleave', 'poi-locations', function () {
