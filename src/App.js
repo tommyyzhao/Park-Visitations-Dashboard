@@ -12,15 +12,24 @@ import Grid from '@material-ui/core/Grid';
 
 class App extends React.Component {
 
+  constructor(props) {
+    super(props);
+    this.state = {
+      parkLng: -97,
+      parkLat: 38,
+    };
+  }
+
   // Function for setting search parameters
   setSearch = (params) => {
     let newParams = {};
     // check if searchTerms has been updated
     if (params.selectedPark) {
-      newParams['selectedPark'] = params.selectedPark;
+      newParams['selectedPark'] = params.selectedPark
+      newParams['parkLng'] = params.selectedPark.longitude
+      newParams['parkLat'] = params.selectedPark.latitude
     }
     if (newParams) {
-      console.log(newParams)
       this.setState(newParams);
     }
   }
@@ -38,6 +47,7 @@ class App extends React.Component {
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <AutoComplete
+                      id="searchbar"
                       setSearch={this.setSearch} />
                   </Grid>
                   <Grid item xs={12}>
@@ -54,7 +64,7 @@ class App extends React.Component {
           </Grid>
           <Grid item xs={9}>
             {this.state && this.state.selectedPark && this.state.selectedPark.name_location && <div className="sidebar-selected">Selected park: {this.state.selectedPark.name_location}</div>}
-            <MapComponent />
+            <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat}/>
           </Grid>
         </Grid>
       </div>

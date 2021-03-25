@@ -1,5 +1,6 @@
 import React from "react"
 import mapboxgl from "mapbox-gl"
+import { timeUnitDurations } from "@amcharts/amcharts4/.internal/core/utils/Time";
 //import { MapboxLayer } from '@deck.gl/mapbox'
 //import {ScatterplotLayer} from '@deck.gl/layers';
 
@@ -35,11 +36,9 @@ class MapComponent extends React.PureComponent {
       lat: map.getCenter().lat.toFixed(4),
       zoom: map.getZoom().toFixed(2)
     });
-
+    
     map.on("move", () => {
       this.setState({
-        lng: map.getCenter().lng.toFixed(4),
-        lat: map.getCenter().lat.toFixed(4),
         zoom: map.getZoom().toFixed(2)})
       });
 
@@ -125,7 +124,7 @@ class MapComponent extends React.PureComponent {
         'id': 'All-labels',
         'type': 'symbol',
         'source': 'all_parks',
-        'minzoom': 10,
+        'minzoom': 8,
         'layout': {
           'text-field': ['get', 'location_name'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
@@ -153,7 +152,7 @@ class MapComponent extends React.PureComponent {
         type: 'circle',
         source: 'all_parks',
         filter: ['all', ['has', 'percent_change'], ['==', 'national', 1]],
-        minzoom: 8,
+        minzoom: 6,
         paint: {
           'circle-radius': [
               'interpolate',
@@ -194,7 +193,7 @@ class MapComponent extends React.PureComponent {
         type: 'circle',
         source: 'all_parks',
         filter: ['all', ['!has', 'percent_change'], ['==', 'national', 1]],
-        minzoom: 8,
+        minzoom: 6,
         paint: {
           'circle-radius': [
               'interpolate',
@@ -224,7 +223,7 @@ class MapComponent extends React.PureComponent {
         'type': 'symbol',
         'source': 'all_parks',
         'filter': ['==', 'national', 1],
-        'minzoom': 10,
+        'minzoom': 4,
         'layout': {
           'text-field': ['get', 'location_name'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
@@ -252,7 +251,7 @@ class MapComponent extends React.PureComponent {
         type: 'circle',
         source: 'all_parks',
         filter: ['all', ['has', 'percent_change'], ['==', 'state', 1]],
-        minzoom: 8,
+        minzoom: 6,
         paint: {
           'circle-radius': [
               'interpolate',
@@ -293,7 +292,7 @@ class MapComponent extends React.PureComponent {
         type: 'circle',
         source: 'all_parks',
         filter: ['all', ['!has', 'percent_change'], ['==', 'state', 1]],
-        minzoom: 8,
+        minzoom: 6,
         paint: {
           'circle-radius': [
               'interpolate',
@@ -323,7 +322,7 @@ class MapComponent extends React.PureComponent {
         'type': 'symbol',
         'source': 'all_parks',
         'filter': ['==', 'state', 1],
-        'minzoom': 10,
+        'minzoom': 4,
         'layout': {
           'text-field': ['get', 'location_name'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
@@ -354,7 +353,7 @@ class MapComponent extends React.PureComponent {
 
       var link = document.createElement('a');
       link.href = '#';
-      if (id == 'All') link.className = 'active';
+      if (id === 'All') link.className = 'active';
       link.textContent = id;
 
       link.onclick = function(e) {
@@ -495,10 +494,31 @@ class MapComponent extends React.PureComponent {
       popup.remove();
     });
 
-
+    this.map = map;
   }
 
-
+  componentDidUpdate(prevProps) {
+    const data  = this.props
+    const mapIsLoaded  = this.state
+  
+    if (!mapIsLoaded) {
+      console.log("map is not loaded")
+      return
+    }
+  
+    if (data === prevProps) {
+      return //do nothing if props didn't change
+    } else {
+      console.log("changed data")
+      console.log(data)
+      console.log(prevProps)
+      this.setState({lat: data.parkLat, lng: data.parkLng})
+      this.map.flyTo({
+        center: [data.parkLng, data.parkLat],
+        zoom: 12
+      })
+    }
+  }
 
 
 
