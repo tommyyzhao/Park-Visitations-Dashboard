@@ -36,7 +36,7 @@ class MapComponent extends React.PureComponent {
       lat: map.getCenter().lat.toFixed(4),
       zoom: map.getZoom().toFixed(2)
     });
-    
+
     map.on("move", () => {
       this.setState({
         zoom: map.getZoom().toFixed(2)})
@@ -85,7 +85,7 @@ class MapComponent extends React.PureComponent {
             ]
         },
         layout: {
-          'visibility': 'visible'
+          'visibility': 'none'
         },
       });
 
@@ -116,7 +116,7 @@ class MapComponent extends React.PureComponent {
           'circle-color': 'rgba(162,162,162,0.4)'
         },
         layout: {
-          'visibility': 'visible'
+          'visibility': 'none'
         }
       });
 
@@ -142,7 +142,7 @@ class MapComponent extends React.PureComponent {
                   [12, 12],
               ]
           },
-          "visibility": "visible",
+          "visibility": "none",
         }
       });
 
@@ -183,7 +183,7 @@ class MapComponent extends React.PureComponent {
             ]
         },
         layout: {
-          'visibility': 'visible'
+          'visibility': 'none'
         }
       });
 
@@ -214,7 +214,7 @@ class MapComponent extends React.PureComponent {
           'circle-color': 'rgba(162,162,162,0.4)'
         },
         layout: {
-          'visibility': 'visible'
+          'visibility': 'none'
         }
       });
 
@@ -241,7 +241,7 @@ class MapComponent extends React.PureComponent {
                   [12, 12],
               ]
           },
-          "visibility": "visible"
+          "visibility": "none"
         }
       });
 
@@ -282,7 +282,7 @@ class MapComponent extends React.PureComponent {
             ]
         },
         layout: {
-          'visibility': 'visible'
+          'visibility': 'none'
         }
       });
 
@@ -313,7 +313,7 @@ class MapComponent extends React.PureComponent {
           'circle-color': 'rgba(162,162,162,0.4)'
         },
         layout: {
-          'visibility': 'visible'
+          'visibility': 'none'
         }
       });
 
@@ -340,20 +340,20 @@ class MapComponent extends React.PureComponent {
                   [12, 12],
               ]
           },
-          'visibility': 'visible'
+          'visibility': 'none'
         }
       });
     });
 
     var toggleableLayerIds = ['All', 'National', 'State'];
-    var layerState = 'All';
+    //var layerState = 'All';
 
     for (var i = 0; i < toggleableLayerIds.length; i++) {
       var id = toggleableLayerIds[i];
 
       var link = document.createElement('a');
       link.href = '#';
-      if (id === 'All') link.className = 'active';
+      //if (id === 'All') {link.className = 'active'};
       link.textContent = id;
 
       link.onclick = function(e) {
@@ -500,12 +500,12 @@ class MapComponent extends React.PureComponent {
   componentDidUpdate(prevProps) {
     const data  = this.props
     const mapIsLoaded  = this.state
-  
+
     if (!mapIsLoaded) {
       console.log("map is not loaded")
       return
     }
-  
+
     if (data === prevProps) {
       return //do nothing if props didn't change
     } else {
