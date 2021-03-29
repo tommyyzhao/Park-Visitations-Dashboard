@@ -1,6 +1,6 @@
 import React from "react"
 import mapboxgl from "mapbox-gl"
-import { timeUnitDurations } from "@amcharts/amcharts4/.internal/core/utils/Time";
+//import { timeUnitDurations } from "@amcharts/amcharts4/.internal/core/utils/Time";
 //import { MapboxLayer } from '@deck.gl/mapbox'
 //import {ScatterplotLayer} from '@deck.gl/layers';
 
@@ -53,7 +53,7 @@ class MapComponent extends React.PureComponent {
         id: 'All',
         type: 'circle',
         source: 'all_parks',
-        filter: ['has', 'percent_change'],
+        filter: ['!=', 'percent_change', ""],
         minzoom: 8,
         paint: {
           'circle-radius': [
@@ -89,41 +89,12 @@ class MapComponent extends React.PureComponent {
         },
       });
 
-      // add layer of parks with percent-change data
-      map.addLayer({
-        id: 'All-no-data',
-        type: 'circle',
-        source: 'all_parks',
-        filter: ['!has', 'percent_change'],
-        minzoom: 8,
-        paint: {
-          'circle-radius': [
-              'interpolate',
-              ['linear'],
-              ['get', 'visitor_counts_pre2020'],
-              1,
-              3,
-              10,
-              6,
-              100,
-              12,
-              1000,
-              24,
-              10000,
-              32
-            ],
-          'circle-blur': 0.1,
-          'circle-color': 'rgba(162,162,162,0.4)'
-        },
-        layout: {
-          'visibility': 'none'
-        }
-      });
 
       map.addLayer({
         'id': 'All-labels',
         'type': 'symbol',
         'source': 'all_parks',
+        'filter': ['!=', 'percent_change', ""],
         'minzoom': 8,
         'layout': {
           'text-field': ['get', 'location_name'],
@@ -151,7 +122,7 @@ class MapComponent extends React.PureComponent {
         id: 'National',
         type: 'circle',
         source: 'all_parks',
-        filter: ['all', ['has', 'percent_change'], ['==', 'national', 1]],
+        filter: ['all', ['!=', 'percent_change', ""], ['==', 'national', 1]],
         minzoom: 6,
         paint: {
           'circle-radius': [
@@ -187,42 +158,12 @@ class MapComponent extends React.PureComponent {
         }
       });
 
-      // add layer of parks with percent-change data
-      map.addLayer({
-        id: 'National-no-data',
-        type: 'circle',
-        source: 'all_parks',
-        filter: ['all', ['!has', 'percent_change'], ['==', 'national', 1]],
-        minzoom: 6,
-        paint: {
-          'circle-radius': [
-              'interpolate',
-              ['linear'],
-              ['get', 'visitor_counts_pre2020'],
-              1,
-              3,
-              10,
-              6,
-              100,
-              12,
-              1000,
-              24,
-              10000,
-              32
-            ],
-          'circle-blur': 0.1,
-          'circle-color': 'rgba(162,162,162,0.4)'
-        },
-        layout: {
-          'visibility': 'none'
-        }
-      });
 
       map.addLayer({
         'id': 'National-labels',
         'type': 'symbol',
         'source': 'all_parks',
-        'filter': ['==', 'national', 1],
+        'filter': ['all', ['!=', 'percent_change', ""], ['==', 'national', 1]],
         'minzoom': 4,
         'layout': {
           'text-field': ['get', 'location_name'],
@@ -250,7 +191,7 @@ class MapComponent extends React.PureComponent {
         id: 'State',
         type: 'circle',
         source: 'all_parks',
-        filter: ['all', ['has', 'percent_change'], ['==', 'state', 1]],
+        filter: ['all', ['!=', 'percent_change', ""], ['==', 'state', 1]],
         minzoom: 6,
         paint: {
           'circle-radius': [
@@ -286,49 +227,19 @@ class MapComponent extends React.PureComponent {
         }
       });
 
-      // add layer of parks with percent-change data
-      map.addLayer({
-        id: 'State-no-data',
-        type: 'circle',
-        source: 'all_parks',
-        filter: ['all', ['!has', 'percent_change'], ['==', 'state', 1]],
-        minzoom: 6,
-        paint: {
-          'circle-radius': [
-              'interpolate',
-              ['linear'],
-              ['get', 'visitor_counts_pre2020'],
-              1,
-              3,
-              10,
-              6,
-              100,
-              12,
-              1000,
-              24,
-              10000,
-              32
-            ],
-          'circle-blur': 0.1,
-          'circle-color': 'rgba(162,162,162,0.4)'
-        },
-        layout: {
-          'visibility': 'none'
-        }
-      });
 
       map.addLayer({
         'id': 'State-labels',
         'type': 'symbol',
         'source': 'all_parks',
-        'filter': ['==', 'state', 1],
+        'filter': ['all', ['!=', 'percent_change', ""], ['==', 'state', 1]],
         'minzoom': 4,
         'layout': {
           'text-field': ['get', 'location_name'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
           'text-radial-offset': 0.8,
-          "text-size": {
-              "stops": [
+          'text-size': {
+              'stops': [
                   [0, 0],
                   [3, 0],
                   [4, 0],
@@ -364,15 +275,12 @@ class MapComponent extends React.PureComponent {
           var layers = [];
           if (clickMenu === 'All') {
               layers.push('All');
-              layers.push('All-no-data');
               layers.push('All-labels');
           } else if (clickMenu === 'National') {
               layers.push('National')
-              layers.push('National-no-data');
               layers.push('National-labels');
           } else if (clickMenu === 'State') {
               layers.push('State');
-              layers.push('State-no-data');
               layers.push('State-labels');
           }
 
