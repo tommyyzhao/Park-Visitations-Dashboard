@@ -30,7 +30,8 @@ class App extends React.Component {
       newParams['parkLat'] = params.selectedPark.latitude
     }
     if (newParams) {
-      this.setState(newParams);
+      this.setState(newParams)
+      //console.log(this.state.selectedPark);
     }
   }
 

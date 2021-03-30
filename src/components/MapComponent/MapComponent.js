@@ -34,7 +34,8 @@ class MapComponent extends React.PureComponent {
     this.setState({
       lng: map.getCenter().lng.toFixed(4),
       lat: map.getCenter().lat.toFixed(4),
-      zoom: map.getZoom().toFixed(2)
+      zoom: map.getZoom().toFixed(2),
+      safe_id: ""
     });
 
     map.on("move", () => {
@@ -109,7 +110,7 @@ class MapComponent extends React.PureComponent {
                   [6, 0],
                   [7, 0],
                   [8, 0],
-                  [10, 6],
+                  [10, 0],
                   [12, 12],
               ]
           },
@@ -178,7 +179,7 @@ class MapComponent extends React.PureComponent {
                   [6, 0],
                   [7, 0],
                   [8, 0],
-                  [10, 6],
+                  [10, 0],
                   [12, 12],
               ]
           },
@@ -247,7 +248,7 @@ class MapComponent extends React.PureComponent {
                   [6, 0],
                   [7, 0],
                   [8, 0],
-                  [10, 6],
+                  [10, 0],
                   [12, 12],
               ]
           },
@@ -304,7 +305,34 @@ class MapComponent extends React.PureComponent {
 
     }
 
+    // The `click` event is an example of a `MapMouseEvent`.
+    // Set up an event listener on the map.
+    map.on('click', 'All', (e) => {
+    // The event object (e) contains information like the
+    // coordinates of the point on the map that was clicked.
+      this.setState({
+        selectedPark: e.features[0].properties
+      });
+      console.log('safegraph place id is', this.state.selectedPark);
+    });
 
+    map.on('click', 'National', (e) => {
+    // The event object (e) contains information like the
+    // coordinates of the point on the map that was clicked.
+      this.setState({
+        selectedPark: e.features[0].properties
+      });
+      console.log('safegraph place id is', this.state.selectedPark);
+    });
+
+    map.on('click', 'State', (e) => {
+    // The event object (e) contains information like the
+    // coordinates of the point on the map that was clicked.
+      this.setState({
+        selectedPark: e.features[0].properties
+      });
+      console.log('safegraph place id is', this.state.selectedPark);
+    });
 
     // Create a popup, but don't add it to the map yet.
     var popup = new mapboxgl.Popup({
@@ -403,6 +431,7 @@ class MapComponent extends React.PureComponent {
     });
 
     this.map = map;
+
   }
 
   componentDidUpdate(prevProps) {
