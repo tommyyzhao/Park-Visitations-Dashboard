@@ -317,8 +317,6 @@ class MapComponent extends React.PureComponent {
     });
 
     map.on('click', 'National', (e) => {
-    // The event object (e) contains information like the
-    // coordinates of the point on the map that was clicked.
       this.setState({
         selectedPark: e.features[0].properties
       });
@@ -326,8 +324,6 @@ class MapComponent extends React.PureComponent {
     });
 
     map.on('click', 'State', (e) => {
-    // The event object (e) contains information like the
-    // coordinates of the point on the map that was clicked.
       this.setState({
         selectedPark: e.features[0].properties
       });
@@ -452,7 +448,7 @@ class MapComponent extends React.PureComponent {
       this.setState({lat: data.parkLat, lng: data.parkLng})
       this.map.flyTo({
         center: [data.parkLng, data.parkLat],
-        zoom: 12
+        zoom: 18
       })
     }
   }
