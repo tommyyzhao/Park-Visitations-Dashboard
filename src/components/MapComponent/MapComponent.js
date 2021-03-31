@@ -305,6 +305,12 @@ class MapComponent extends React.PureComponent {
 
     }
 
+    // Color legend
+    var legend = document.getElementById('color-legend');
+    legend.style.display = 'block'
+
+
+
     // The `click` event is an example of a `MapMouseEvent`.
     // Set up an event listener on the map.
     map.on('click', 'All', (e) => {
@@ -469,6 +475,12 @@ class MapComponent extends React.PureComponent {
           style={{
             height: "100vh"
           }}>
+        </div>
+        <div id="color-legend" class="legend" >
+          <div><h4>Visitation Percent Change</h4></div>
+          <div><span style={{'background-color': 'rgba(19,225,19,0.8)'}}></span>100%</div>
+          <div><span style={{'background-color': 'rgba(225,225,19,0.5)'}}></span>0%</div>
+          <div><span style={{'background-color': 'rgba(225,19,19,0.8)'}}></span>-100%</div>
         </div>
       </div>
 
