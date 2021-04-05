@@ -2,8 +2,7 @@ import React from "react"
 import * as am4core from "@amcharts/amcharts4/core";
 import * as am4charts from "@amcharts/amcharts4/charts";
 import am4themes_animated from "@amcharts/amcharts4/themes/animated";
-import { isCompositeComponent } from "react-dom/test-utils";
-import { MongoClient } from 'mongodb';
+
 
 am4core.useTheme(am4themes_animated);
 
@@ -60,39 +59,12 @@ class VisitationChart extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
+      visitations_data: {}
     };
     
   }
 
-  async initDB(client) {
-    try {
-      console.log("attempting to connect")
-      console.log(client)
-      await client.connect();
-      console.log("connected")
-      const database = client.db('parkvisitations');
-      const parks = database.collection('park_patterns');
-      // Query for a park that has the id
-      const query = { safegraph_place_id: 'sg:0000d1ce44b44aa5a24157a3f8574a55' };
-      const park = await parks.findOne(query);
-      console.log(park);
-    } catch (error) {
-      console.error(error)
-    } finally {
-      console.log("finished connecting")
-      await client.close();
-    }
-  }
-
   componentDidMount() {
-    const uri = "mongodb+srv://park:visitations@ParkVisitations.mgpda.mongodb.net/ParkVisitations?retryWrites=true&w=majority";
-    const client = new MongoClient(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    this.initDB(client)
-
     let chart = am4core.create("chartdiv", am4charts.XYChart);
 
     
@@ -166,17 +138,6 @@ class VisitationChart extends React.PureComponent {
     } else {
       console.log("changed chart data")
       console.log(data)
-      /*
-      this.client.connect(err => {
-        const collection = this.client.db("ParkVisitations").collection("park_patterns");
-        // perform actions on the collection object
-        let query = { safegraph_place_id: data.parkId}
-        collection.find(query).toArray(function(err,result) {
-          if (err) throw err;
-          console.log(result);
-        });
-        this.client.close();
-      });*/
     }
   }
 
