@@ -481,6 +481,7 @@ class MapComponent extends React.PureComponent {
           <div><span style={{'background-color': 'rgba(19,225,19,0.8)'}}></span>100%</div>
           <div><span style={{'background-color': 'rgba(225,225,19,0.5)'}}></span>0%</div>
           <div><span style={{'background-color': 'rgba(225,19,19,0.8)'}}></span>-100%</div>
+          <div>* The size of each circle represents average monthly visitations post COVID-19</div>
         </div>
       </div>
 
