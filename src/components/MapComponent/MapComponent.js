@@ -476,11 +476,14 @@ class MapComponent extends React.PureComponent {
             height: "100vh"
           }}>
         </div>
-        <div id="color-legend" class="legend" >
-          <div><h4>Park Visitation Percent Change Post 2020</h4></div>
-          <div><span style={{'background-color': 'rgba(19,225,19,0.8)'}}></span>100%</div>
-          <div><span style={{'background-color': 'rgba(225,225,19,0.5)'}}></span>0%</div>
-          <div><span style={{'background-color': 'rgba(225,19,19,0.8)'}}></span>-100%</div>
+        <div id="color-legend" className="legend" >
+          <div>
+            <h2>Legend</h2>
+            <h4>change in average monthly visitations<br></br> pre-2020{'\u2192'}post-2020: </h4>
+          </div>
+          <div><span style={{'backgroundColor': 'rgba(19,225,19,0.8)'}}></span>100%</div>
+          <div><span style={{'backgroundColor': 'rgba(225,225,19,0.5)'}}></span>0%</div>
+          <div><span style={{'backgroundColor': 'rgba(225,19,19,0.8)'}}></span>-100%</div>
         </div>
       </div>
 
