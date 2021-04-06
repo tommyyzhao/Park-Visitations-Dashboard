@@ -80,7 +80,7 @@ class MapComponent extends React.PureComponent {
             -1,
             'rgba(225,19,19,0.8)',
             0,
-            'rgba(225,225,19,0.5)',
+            'rgba(218, 218, 218, 0.885)',
             1,
             'rgba(19,225,19,0.8)'
             ]
@@ -149,7 +149,7 @@ class MapComponent extends React.PureComponent {
             -1,
             'rgba(225,19,19,0.8)',
             0,
-            'rgba(225,225,19,0.5)',
+            'rgba(218, 218, 218, 0.885)',
             1,
             'rgba(19,225,19,0.8)'
             ]
@@ -218,7 +218,7 @@ class MapComponent extends React.PureComponent {
             -1,
             'rgba(225,19,19,0.8)',
             0,
-            'rgba(225,225,19,0.5)',
+            'rgba(218, 218, 218, 0.885)',
             1,
             'rgba(19,225,19,0.8)'
             ]
@@ -487,9 +487,6 @@ class MapComponent extends React.PureComponent {
     if (data === prevProps) {
       return //do nothing if props didn't change
     } else {
-      console.log("changed data")
-      console.log(data)
-      console.log(prevProps)
       this.setState({lat: data.parkLat, lng: data.parkLng})
       this.map.flyTo({
         center: [data.parkLng, data.parkLat],
@@ -521,7 +518,7 @@ class MapComponent extends React.PureComponent {
             <h4>change in average monthly visitations<br></br> pre-Covid{'\u2192'}post-Covid: </h4>
           </div>
           <div><span style={{'backgroundColor': 'rgba(19,225,19,0.8)'}}></span>100%</div>
-          <div><span style={{'backgroundColor': 'rgba(225,225,19,0.5)'}}></span>0%</div>
+          <div><span style={{'backgroundColor': 'rgba(218, 218, 218, 0.885)'}}></span>0%</div>
           <div><span style={{'backgroundColor': 'rgba(225,19,19,0.8)'}}></span>-100%</div>
           <div>* Point size represents volume of average <br></br>monthly visitations post COVID-19</div>
         </div>
