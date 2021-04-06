@@ -361,29 +361,17 @@ class MapComponent extends React.PureComponent {
     legend.style.display = 'block'
 
 
-    // The `click` event is an example of a `MapMouseEvent`.
     // Set up an event listener on the map.
     map.on('click', 'All', (e) => {
-    // The event object (e) contains information like the
-    // coordinates of the point on the map that was clicked.
-      this.setState({
-        selectedPark: e.features[0].properties
-      });
-      console.log('safegraph place id is', this.state.selectedPark);
+      this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
     });
 
     map.on('click', 'National', (e) => {
-      this.setState({
-        selectedPark: e.features[0].properties
-      });
-      console.log('safegraph place id is', this.state.selectedPark);
+      this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
     });
 
     map.on('click', 'State', (e) => {
-      this.setState({
-        selectedPark: e.features[0].properties
-      });
-      console.log('safegraph place id is', this.state.selectedPark);
+      this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
     });
 
     // Create a popup, but don't add it to the map yet.
@@ -535,7 +523,7 @@ class MapComponent extends React.PureComponent {
           <div><span style={{'backgroundColor': 'rgba(19,225,19,0.8)'}}></span>100%</div>
           <div><span style={{'backgroundColor': 'rgba(225,225,19,0.5)'}}></span>0%</div>
           <div><span style={{'backgroundColor': 'rgba(225,19,19,0.8)'}}></span>-100%</div>
-          <div>* Point size represents average monthly visitations post COVID-19</div>
+          <div>* Point size represents volume of average <br></br>monthly visitations post COVID-19</div>
         </div>
       </div>
 
