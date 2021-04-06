@@ -257,58 +257,108 @@ class MapComponent extends React.PureComponent {
       });
     });
 
-    var toggleableLayerIds = ['All', 'National', 'State'];
-    //var layerState = 'All';
+    // Create toggleboxes to filter for different types of parks with a click event
+    var id = "All";
+    var id2 = "National"
+    var id3 = "State"
 
-    for (var i = 0; i < toggleableLayerIds.length; i++) {
-      var id = toggleableLayerIds[i];
+    var link = document.createElement('a');
+    link.href = '#';
+    link.textContent = id;
 
-      var link = document.createElement('a');
-      link.href = '#';
-      //if (id === 'All') {link.className = 'active'};
-      link.textContent = id;
+    var link2 = document.createElement('a');
+    link2.href = '#';
+    link2.textContent = id2;
 
-      link.onclick = function(e) {
-          var clickMenu = this.textContent;
-          e.preventDefault();
-          e.stopPropagation();
+    var link3 = document.createElement('a');
+    link3.href = '#';
+    link3.textContent = id3;
 
-          var layers = [];
-          if (clickMenu === 'All') {
-              layers.push('All');
-              layers.push('All-labels');
-          } else if (clickMenu === 'National') {
-              layers.push('National')
-              layers.push('National-labels');
-          } else if (clickMenu === 'State') {
-              layers.push('State');
-              layers.push('State-labels');
-          }
+    link.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
 
-          for (var i = 0; i < layers.length; i++) {
-              var visibility = map.getLayoutProperty(layers[i], 'visibility');
-              if (visibility === 'visible') {
-                  map.setLayoutProperty(layers[i], 'visibility', 'none');
-                  this.className = '';
-              } else {
-                  this.className = 'active';
-                  map.setLayoutProperty(layers[i], 'visibility', 'visible');
-              }
-          }
-      };
+        var layers = [];
 
-      // Set Default Layer Visibility to All
+        layers.push('All');
+        layers.push('All-labels');
 
-
-      var layers = document.getElementById('menu');
-      layers.appendChild(link);
+        for (var i = 0; i < layers.length; i++) {
+            var visibility = map.getLayoutProperty(layers[i], 'visibility');
+            if (visibility === 'visible') {
+                map.setLayoutProperty(layers[i], 'visibility', 'none');
+                link.className = '';
+            } else {
+                link.className = 'active';
+                link2.className = '';
+                link3.className = '';
+                map.setLayoutProperty(layers[i], 'visibility', 'visible');
+                map.setLayoutProperty('National', 'visibility', 'none');
+                map.setLayoutProperty('National-labels', 'visibility', 'none');
+                map.setLayoutProperty('State', 'visibility', 'none');
+                map.setLayoutProperty('State-labels', 'visibility', 'none');
+            }
+        }
 
     }
+
+    link2.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var layers2 = [];
+
+        layers2.push('National')
+        layers2.push('National-labels');
+
+
+        for (var j = 0; j < layers2.length; j++) {
+            var visibility2 = map.getLayoutProperty(layers2[j], 'visibility');
+            if (visibility2 === 'visible') {
+                map.setLayoutProperty(layers2[j], 'visibility', 'none');
+                link2.className = '';
+            } else {
+                link2.className = 'active';
+                link.className = '';
+                map.setLayoutProperty(layers2[j], 'visibility', 'visible');
+                map.setLayoutProperty('All', 'visibility', 'none');
+                map.setLayoutProperty('All-labels', 'visibility', 'none');
+            }
+        }
+    }
+
+    link3.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var layers3 = [];
+
+        layers3.push('State');
+        layers3.push('State-labels');
+
+        for (var k = 0; k < layers3.length; k++) {
+            var visibility3 = map.getLayoutProperty(layers3[k], 'visibility');
+            if (visibility3 === 'visible') {
+                map.setLayoutProperty(layers3[k], 'visibility', 'none');
+                link3.className = '';
+            } else {
+                link3.className = 'active';
+                link.className = '';
+                map.setLayoutProperty(layers3[k], 'visibility', 'visible');
+                map.setLayoutProperty('All', 'visibility', 'none');
+                map.setLayoutProperty('All-labels', 'visibility', 'none');
+            }
+        }
+    }
+
+    var layers = document.getElementById('menu');
+    layers.appendChild(link);
+    layers.appendChild(link2);
+    layers.appendChild(link3);
 
     // Color legend
     var legend = document.getElementById('color-legend');
     legend.style.display = 'block'
-
 
 
     // The `click` event is an example of a `MapMouseEvent`.
@@ -342,6 +392,7 @@ class MapComponent extends React.PureComponent {
       closeOnClick: false
     });
 
+    // Create a mouse over event for the tooltip
     map.on('mouseenter', 'All', function (e) {
       map.getCanvas().style.cursor = 'pointer';
 
@@ -460,7 +511,7 @@ class MapComponent extends React.PureComponent {
   }
 
 
-
+  // Generate the map component for the dashboard
   render() {
     const { lng, lat, zoom } = this.state;
     return (
@@ -481,7 +532,7 @@ class MapComponent extends React.PureComponent {
           <div><span style={{'background-color': 'rgba(19,225,19,0.8)'}}></span>100%</div>
           <div><span style={{'background-color': 'rgba(225,225,19,0.5)'}}></span>0%</div>
           <div><span style={{'background-color': 'rgba(225,19,19,0.8)'}}></span>-100%</div>
-          <div>* The size of each circle represents average monthly visitations post COVID-19</div>
+          <div>* Size represents average monthly visitations post COVID-19</div>
         </div>
       </div>
 
