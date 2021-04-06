@@ -72,7 +72,9 @@ class MapComponent extends React.PureComponent {
               10000,
               32
             ],
-          'circle-blur': 0.4,
+          'circle-blur': 0.2,
+          'circle-stroke-width': 0.1,
+          'circle-stroke-color': '#000000',
           'circle-color': [
             'interpolate',
             ['linear'],
@@ -101,6 +103,7 @@ class MapComponent extends React.PureComponent {
           'text-field': ['get', 'location_name'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
           'text-radial-offset': 0.8,
+          'text-font': ["Roboto Regular"],
           "text-size": {
               "stops": [
                   [0, 0],
@@ -141,7 +144,9 @@ class MapComponent extends React.PureComponent {
               10000,
               32
             ],
-          'circle-blur': 0.4,
+          'circle-blur': 0.2,
+          'circle-stroke-width': 0.1,
+          'circle-stroke-color': '#000000',
           'circle-color': [
             'interpolate',
             ['linear'],
@@ -170,7 +175,8 @@ class MapComponent extends React.PureComponent {
           'text-field': ['get', 'location_name'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
           'text-radial-offset': 0.8,
-          "text-size": {
+          'text-font': ["Roboto Regular"],
+          'text-size': {
               "stops": [
                   [0, 0],
                   [3, 0],
@@ -210,7 +216,9 @@ class MapComponent extends React.PureComponent {
               10000,
               32
             ],
-          'circle-blur': 0.4,
+          'circle-blur': 0.2,
+          'circle-stroke-width': 0.1,
+          'circle-stroke-color': '#000000',
           'circle-color': [
             'interpolate',
             ['linear'],
@@ -239,6 +247,7 @@ class MapComponent extends React.PureComponent {
           'text-field': ['get', 'location_name'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
           'text-radial-offset': 0.8,
+          'text-font': ["Roboto Regular"],
           'text-size': {
               'stops': [
                   [0, 0],
@@ -513,14 +522,14 @@ class MapComponent extends React.PureComponent {
           }}>
         </div>
         <div id="color-legend" className="legend" >
-          <div>
-            <h2>Legend</h2>
-            <h4>change in average monthly visitations<br></br> pre-Covid{'\u2192'}post-Covid: </h4>
-          </div>
-          <div><span style={{'backgroundColor': 'rgba(19,225,19,0.8)'}}></span>100%</div>
-          <div><span style={{'backgroundColor': 'rgba(218, 218, 218, 0.885)'}}></span>0%</div>
-          <div><span style={{'backgroundColor': 'rgba(225,19,19,0.8)'}}></span>-100%</div>
-          <div>* Point size represents volume of average <br></br>monthly visitations post COVID-19</div>
+          <div><h4>Percent Change in Average Monthly Park Visitations Pre vs. Post COVID-19</h4></div>
+          <div class="colorbar"></div>
+          <ul>
+            <li class="left">-100%</li>
+            <li>0%</li>
+            <li class="right">100%</li>
+          </ul>
+          <div>* Circle size represents volume of average monthly visitations post COVID-19</div>
         </div>
       </div>
 
