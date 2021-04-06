@@ -10,6 +10,7 @@ import "./App.scss";
 import Grid from '@material-ui/core/Grid';
 
 
+
 class App extends React.Component {
 
   constructor(props) {
@@ -17,7 +18,10 @@ class App extends React.Component {
     this.state = {
       parkLng: -97,
       parkLat: 38,
+      selectedParkId: null,
+      selectedParkName: " ",
     };
+
   }
 
   // Function for setting search parameters
@@ -26,17 +30,21 @@ class App extends React.Component {
     // check if searchTerms has been updated
     if (params.selectedPark) {
       newParams['selectedPark'] = params.selectedPark
+      newParams['selectedParkName'] = params.selectedPark.location_name
       newParams['parkLng'] = params.selectedPark.longitude
       newParams['parkLat'] = params.selectedPark.latitude
+      newParams['selectedParkId'] = params.selectedPark.safegraph_place_id
+    }
+    // seperate if statement to check if MapComponent updated the selected park
+    if (params.selectedParkId) {
+      newParams['selectedParkId'] = params.selectedParkId
     }
     if (newParams) {
       this.setState(newParams)
-      //console.log(this.state.selectedPark);
     }
   }
 
   render() {
-    //console.log(this.state)
     return (
       // Render components in a Grid
       <div>
@@ -48,7 +56,7 @@ class App extends React.Component {
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <AutoComplete
-                      id="searchbar"
+                      selectedParkId={this.state.selectedParkId}
                       setSearch={this.setSearch} />
                   </Grid>
                   <Grid item xs={12}>
@@ -59,13 +67,13 @@ class App extends React.Component {
 
               </Grid>
               <Grid item xs={12} style={{ 'height': '100%' }}>
-                <VisitationChart />
+                <VisitationChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName}/>
               </Grid>
             </Grid>
           </Grid>
           <Grid item xs={9}>
-            {this.state && this.state.selectedPark && this.state.selectedPark.name_location && <div className="sidebar-selected">Selected park: {this.state.selectedPark.name_location}</div>}
-            <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat}/>
+            {this.state && this.state.selectedPark && this.state.selectedPark.location_name && <div className="sidebar-selected">Selected park: {this.state.selectedPark.location_name}</div>}
+            <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
           </Grid>
         </Grid>
       </div>

@@ -2,7 +2,7 @@ import React from "react"
 import * as am4core from "@amcharts/amcharts4/core";
 import * as am4charts from "@amcharts/amcharts4/charts";
 import am4themes_animated from "@amcharts/amcharts4/themes/animated";
-
+import Fuse from "fuse.js"
 
 am4core.useTheme(am4themes_animated);
 
@@ -59,9 +59,16 @@ class VisitationChart extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      visitations_data: {}
+      visitations_data: test_sample,
+      parkId: props.parkId,
+      parkName: props.parkName
     };
-    
+    this.database_patterns = new Fuse(require("../../data/poi_patterns_raw.json"), {
+      keys: ['safegraph_place_id'],
+      shouldSort: false,
+      minMatchCharLength: 10,
+      threshold: 0.0
+    })
   }
 
   componentDidMount() {
@@ -79,33 +86,29 @@ class VisitationChart extends React.PureComponent {
 
     let data = [];
     
-    let visits = 10;
     for (let i = 0; i < dates.length; i++) {
-      data.push({ date: new Date(dates[i]), name: "name" + i, value: test_sample[dates[i]] });
+      data.push({ date: new Date(dates[i]), name: "name" + i, value: this.state.visitations_data[dates[i]] });
     }
 
     chart.data = data;
 
     var title = chart.titles.create();
-    title.text = "Visitation Chart"; // CHART TITLE
+    title.text = "Monthly Visitations for Park"; // CHART TITLE
     title.fontWeight = "bold";
     title.fontSize = 16;
-    title.fontFamily = "Courier New";
+    title.fontFamily = "Arial, Sans Serif";
 
     let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
     dateAxis.renderer.grid.template.location = 0;
     dateAxis.title.text = "Date"; // X-AXIS LABEL
-    dateAxis.title.fontWeight = "bold";
-    dateAxis.title.fontSize = 12;
-    dateAxis.title.fontFamily = "Courier New";
+    dateAxis.title.fontSize = 13;
+    dateAxis.title.fontFamily = "Arial, Sans Serif";
 
     let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
     valueAxis.tooltip.disabled = true;
-    valueAxis.renderer.minWidth = 35;
-    valueAxis.title.text = "Visitation counts"; // Y-AXIS LABEL
-    valueAxis.title.fontWeight = "bold";
-    valueAxis.title.fontSize = 12;
-    valueAxis.title.fontFamily = "Courier New";
+    valueAxis.title.text = "Monthly visitation counts"; // Y-AXIS LABEL
+    valueAxis.title.fontSize = 13;
+    valueAxis.title.fontFamily = "Arial, Sans Serif";
 
     let series = chart.series.push(new am4charts.LineSeries());
     series.dataFields.dateX = "date";
@@ -118,6 +121,7 @@ class VisitationChart extends React.PureComponent {
     scrollbarX.series.push(series);
     chart.scrollbarX = scrollbarX;
 
+    this.title = title;
     this.chart = chart;
   }
 
@@ -131,19 +135,34 @@ class VisitationChart extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    const data = this.props
-
-    if (data === prevProps) {
+    if (this.props === prevProps || !this.props.parkId) {
       return //do nothing if props didn't change
     } else {
-      console.log("changed chart data")
-      console.log(data)
+      // query for park visitation data from Fuse database
+      console.log("searching for visitations data")
+      let visitations = this.database_patterns.search(this.props.parkId)[0]
+      console.log(visitations)
+      let data = [];
+      // check for visitations data
+      if (visitations) {
+        for (const [key, value] of Object.entries(visitations.item)) {
+          if (key === 'safegraph_place_id') {continue}
+          data.push({ date: new Date(key), name: "name" + key, value: value });
+        }
+        this.chart.data = data;
+        this.title.text = `Monthly Visitations for ${this.props.parkName}`
+      } else {
+        this.title.text = `Error finding visitations data for ${this.props.parkName}`
+      }
+      
     }
   }
 
   render() {
     return (
-      <div id="chartdiv" style={{ width: "100%", height: "500px" }}></div>
+      <div>
+        <div id="chartdiv" style={{ width: "100%", height: "500px" }}></div>
+      </div>
     );
   }
 }
