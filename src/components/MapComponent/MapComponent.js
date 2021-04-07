@@ -47,7 +47,7 @@ class MapComponent extends React.PureComponent {
 
       map.addSource('all_parks', {
         type: 'geojson',
-        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/labeled_visitor_change.geojson'
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/labeled_change.geojson'
       });
 
       map.addSource('county_parks', {
@@ -66,7 +66,7 @@ class MapComponent extends React.PureComponent {
           'circle-radius': [
               'interpolate',
               ['linear'],
-              ['get', 'visitor_counts_post2020'],
+              ['get', 'visitor_counts_postcovid'],
               1,
               3,
               10,
@@ -138,7 +138,7 @@ class MapComponent extends React.PureComponent {
           'circle-radius': [
               'interpolate',
               ['linear'],
-              ['get', 'visitor_counts_post2020'],
+              ['get', 'visitor_counts_postcovid'],
               1,
               3,
               10,
@@ -210,7 +210,7 @@ class MapComponent extends React.PureComponent {
           'circle-radius': [
               'interpolate',
               ['linear'],
-              ['get', 'visitor_counts_post2020'],
+              ['get', 'visitor_counts_postcovid'],
               1,
               3,
               10,
@@ -281,7 +281,7 @@ class MapComponent extends React.PureComponent {
           'circle-radius': [
               'interpolate',
               ['linear'],
-              ['get', 'visitor_counts_post2020'],
+              ['get', 'visitor_counts_postcovid'],
               1,
               3,
               10,
@@ -413,9 +413,12 @@ class MapComponent extends React.PureComponent {
             } else {
                 link2.className = 'active';
                 link.className = '';
+                link4.className = '';
                 map.setLayoutProperty(layers2[j], 'visibility', 'visible');
                 map.setLayoutProperty('All', 'visibility', 'none');
                 map.setLayoutProperty('All-labels', 'visibility', 'none');
+                map.setLayoutProperty('County', 'visibility', 'none');
+                map.setLayoutProperty('County-labels', 'visibility', 'none');
             }
         }
     }
@@ -437,9 +440,12 @@ class MapComponent extends React.PureComponent {
             } else {
                 link3.className = 'active';
                 link.className = '';
+                link4.className = '';
                 map.setLayoutProperty(layers3[k], 'visibility', 'visible');
                 map.setLayoutProperty('All', 'visibility', 'none');
                 map.setLayoutProperty('All-labels', 'visibility', 'none');
+                map.setLayoutProperty('County', 'visibility', 'none');
+                map.setLayoutProperty('County-labels', 'visibility', 'none');
             }
         }
     }
@@ -462,9 +468,15 @@ class MapComponent extends React.PureComponent {
             } else {
                 link4.className = 'active';
                 link.className = '';
+                link2.className = '';
+                link3.className = '';
                 map.setLayoutProperty(layers4[l], 'visibility', 'visible');
                 map.setLayoutProperty('All', 'visibility', 'none');
                 map.setLayoutProperty('All-labels', 'visibility', 'none');
+                map.setLayoutProperty('National', 'visibility', 'none');
+                map.setLayoutProperty('National-labels', 'visibility', 'none');
+                map.setLayoutProperty('State', 'visibility', 'none');
+                map.setLayoutProperty('State-labels', 'visibility', 'none');
             }
         }
     }
@@ -504,11 +516,11 @@ class MapComponent extends React.PureComponent {
       map.getCanvas().style.cursor = 'pointer';
 
       var coordinates = e.features[0].geometry.coordinates.slice();
-      var name = e.features[0].properties.location_name;
+      var name = e.features[0].properties.location;
       var city = e.features[0].properties.city;
       var state = e.features[0].properties.region;
-      var pre2020 = e.features[0].properties.visitor_counts_pre2020;
-      var post2020 = e.features[0].properties.visitor_counts_post2020;
+      var precovid = e.features[0].properties.visitor_counts_precovid;
+      var postcovid = e.features[0].properties.visitor_counts_postcovid;
       var change = e.features[0].properties.percent_change;
 
       // Ensure that if the map is zoomed out such that multiple copies of the feature are visible, the popup appears over the copy being pointed to.
@@ -516,13 +528,13 @@ class MapComponent extends React.PureComponent {
         coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
       }
 
-      pre2020 = pre2020 ? pre2020 : "no data"
-      post2020 = post2020 ? post2020 : "no data"
+      precovid = precovid ? precovid : "no data"
+      postcovid = postcovid ? postcovid : "no data"
       change = change ? change : "no data"
 
       // Populate the popup and set its coordinates based on the feature found.
-      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${city}, ${state} <p> <b>Average Monthly Visitors</b> <br> Pre-2020: ${pre2020} <br>
-                                            Post-2020: ${post2020} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
+      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${city}, ${state} <p> <b>Average Monthly Visitors</b> <br> Pre-COVID: ${precovid} <br>
+                                            Post-COVID: ${postcovid} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
     });
 
     map.on('mouseleave', 'All', function () {
@@ -534,11 +546,11 @@ class MapComponent extends React.PureComponent {
       map.getCanvas().style.cursor = 'pointer';
 
       var coordinates = e.features[0].geometry.coordinates.slice();
-      var name = e.features[0].properties.location_name;
+      var name = e.features[0].properties.location;
       var city = e.features[0].properties.city;
       var state = e.features[0].properties.region;
-      var pre2020 = e.features[0].properties.visitor_counts_pre2020;
-      var post2020 = e.features[0].properties.visitor_counts_post2020;
+      var precovid  = e.features[0].properties.visitor_counts_precovid;
+      var postcovid  = e.features[0].properties.visitor_counts_postcovid;
       var change = e.features[0].properties.percent_change;
 
       // Ensure that if the map is zoomed out such that multiple copies of the feature are visible, the popup appears over the copy being pointed to.
@@ -546,13 +558,13 @@ class MapComponent extends React.PureComponent {
         coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
       }
 
-      pre2020 = pre2020 ? pre2020 : "no data"
-      post2020 = post2020 ? post2020 : "no data"
+      precovid = precovid ? precovid : "no data"
+      postcovid = postcovid ? postcovid : "no data"
       change = change ? change : "no data"
 
       // Populate the popup and set its coordinates based on the feature found.
-      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${city}, ${state} <p> <b>Average Monthly Visitors</b> <br> Pre-2020: ${pre2020} <br>
-                                            Post-2020: ${post2020} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
+      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${city}, ${state} <p> <b>Average Monthly Visitors</b> <br> Pre-COVID: ${precovid} <br>
+                                            Post-COVID: ${postcovid} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
     });
 
     map.on('mouseleave', 'National', function () {
@@ -564,11 +576,11 @@ class MapComponent extends React.PureComponent {
       map.getCanvas().style.cursor = 'pointer';
 
       var coordinates = e.features[0].geometry.coordinates.slice();
-      var name = e.features[0].properties.location_name;
+      var name = e.features[0].properties.location;
       var city = e.features[0].properties.city;
       var state = e.features[0].properties.region;
-      var pre2020 = e.features[0].properties.visitor_counts_pre2020;
-      var post2020 = e.features[0].properties.visitor_counts_post2020;
+      var precovid = e.features[0].properties.visitor_counts_precovid;
+      var postcovid = e.features[0].properties.visitor_counts_postcovid;
       var change = e.features[0].properties.percent_change;
 
       // Ensure that if the map is zoomed out such that multiple copies of the feature are visible, the popup appears over the copy being pointed to.
@@ -576,13 +588,13 @@ class MapComponent extends React.PureComponent {
         coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
       }
 
-      pre2020 = pre2020 ? pre2020 : "no data"
-      post2020 = post2020 ? post2020 : "no data"
+      precovid = precovid ? precovid : "no data"
+      postcovid = postcovid ? postcovid : "no data"
       change = change ? change : "no data"
 
       // Populate the popup and set its coordinates based on the feature found.
-      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${city}, ${state} <p> <b>Average Monthly Visitors</b> <br> Pre-2020: ${pre2020} <br>
-                                            Post-2020: ${post2020} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
+      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${city}, ${state} <p> <b>Average Monthly Visitors</b> <br> Pre-COVID: ${precovid} <br>
+                                            Post-COVID: ${postcovid} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
     });
 
     map.on('mouseleave', 'State', function () {
@@ -595,9 +607,10 @@ class MapComponent extends React.PureComponent {
 
       var coordinates = e.features[0].geometry.coordinates.slice();
       var name = e.features[0].properties.county;
+      var fips = e.features[0].properties.county_fips;
       var state = e.features[0].properties.state;
-      var pre2020 = e.features[0].properties.visitor_counts_pre2020;
-      var post2020 = e.features[0].properties.visitor_counts_post2020;
+      var precovid = e.features[0].properties.visitor_counts_precovid;
+      var postcovid = e.features[0].properties.visitor_counts_postcovid;
       var change = e.features[0].properties.percent_change;
 
       // Ensure that if the map is zoomed out such that multiple copies of the feature are visible, the popup appears over the copy being pointed to.
@@ -605,13 +618,13 @@ class MapComponent extends React.PureComponent {
         coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
       }
 
-      pre2020 = pre2020 ? pre2020 : "no data"
-      post2020 = post2020 ? post2020 : "no data"
+      precovid = precovid ? precovid : "no data"
+      postcovid = postcovid ? postcovid : "no data"
       change = change ? change : "no data"
 
       // Populate the popup and set its coordinates based on the feature found.
-      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${state} <p> <b>Average Monthly Visitors</b> <br> Pre-2020: ${pre2020} <br>
-                                            Post-2020: ${post2020} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
+      popup.setLngLat(coordinates).setHTML(`<b>${name}</b>, ${state}, ${fips} <p> <b>Average Monthly Visitors</b> <br> Pre-COVID: ${precovid} <br>
+                                            Post-COVID: ${postcovid} <br></p> <b>Percent change:</b> ${change}`).addTo(map);
     });
 
     map.on('mouseleave', 'County', function () {
