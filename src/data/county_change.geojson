@@ -42982,23 +42982,6 @@
             "geometry": {
                 "type": "Point",
                 "coordinates": [
-                    -79.236,
-                    41.513
-                ]
-            },
-            "properties": {
-                "county": "Forest",
-                "visitor_counts_pre2020": 0.0,
-                "visitor_counts_post2020": 0.08,
-                "percent_change": Infinity,
-                "state": "PA"
-            }
-        },
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
                     -97.7544,
                     43.3349
                 ]
@@ -44301,23 +44284,6 @@
                 "visitor_counts_post2020": 151.42,
                 "percent_change": 0.4,
                 "state": "IA"
-            }
-        },
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [
-                    -100.4379,
-                    37.7382
-                ]
-            },
-            "properties": {
-                "county": "Gray",
-                "visitor_counts_pre2020": 0.0,
-                "visitor_counts_post2020": 0.17,
-                "percent_change": Infinity,
-                "state": "KS"
             }
         },
         {
