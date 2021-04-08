@@ -18,8 +18,10 @@ class MapComponent extends React.PureComponent {
       zoom: 4
     };
     this.mapContainer = React.createRef();
-    // mapbox layer
 
+    this.negative_color = 'rgba(225,19,19,0.8)'
+    this.neutral_color = 'rgba(227, 237, 248, 0.885)'
+    this.positive_color = 'rgba(19,225,19,0.8)'
   }
 
   componentDidMount() {
@@ -86,11 +88,11 @@ class MapComponent extends React.PureComponent {
             ['linear'],
             ['get', 'percent_change'],
             -1,
-            'rgba(225,19,19,0.8)',
+            this.negative_color,
             0,
-            'rgba(218, 218, 218, 0.885)',
+            this.neutral_color,
             1,
-            'rgba(19,225,19,0.8)'
+            this.positive_color
             ]
         },
         layout: {
@@ -158,11 +160,11 @@ class MapComponent extends React.PureComponent {
             ['linear'],
             ['get', 'percent_change'],
             -1,
-            'rgba(225,19,19,0.8)',
+            this.negative_color,
             0,
-            'rgba(218, 218, 218, 0.885)',
+            this.neutral_color,
             1,
-            'rgba(19,225,19,0.8)'
+            this.positive_color
             ]
         },
         layout: {
@@ -230,11 +232,11 @@ class MapComponent extends React.PureComponent {
             ['linear'],
             ['get', 'percent_change'],
             -1,
-            'rgba(225,19,19,0.8)',
+            this.negative_color,
             0,
-            'rgba(218, 218, 218, 0.885)',
+            this.neutral_color,
             1,
-            'rgba(19,225,19,0.8)'
+            this.positive_color
             ]
         },
         layout: {
@@ -301,11 +303,11 @@ class MapComponent extends React.PureComponent {
             ['linear'],
             ['get', 'percent_change'],
             -1,
-            'rgba(225,19,19,0.8)',
+            this.negative_color,
             0,
-            'rgba(218, 218, 218, 0.885)',
+            this.neutral_color,
             1,
-            'rgba(19,225,19,0.8)'
+            this.positive_color
             ]
         },
         layout: {
