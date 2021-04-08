@@ -49,12 +49,12 @@ class MapComponent extends React.PureComponent {
 
       map.addSource('all_parks', {
         type: 'geojson',
-        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/data/labeled_change.geojson'
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/dashboard/src/data/labeled_change.geojson'
       });
 
       map.addSource('county_parks', {
         type: 'geojson',
-        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/data/county_change.geojson'
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/dashboard/src/data/county_change.geojson'
       });
 
       // add layer of parks with percent-change data
@@ -677,11 +677,11 @@ class MapComponent extends React.PureComponent {
         </div>
         <div id="color-legend" className="legend" >
           <div><h4>Percent Change in Average Monthly Park Visitations Pre vs. Post COVID-19</h4></div>
-          <div class="colorbar"></div>
+          <div className="colorbar"></div>
           <ul>
-            <li class="left">-100%</li>
+            <li className="left">-100%</li>
             <li>0%</li>
-            <li class="right">100%</li>
+            <li className="right">100%</li>
           </ul>
           <div>* Circle size represents volume of average monthly visitations post COVID-19</div>
         </div>
