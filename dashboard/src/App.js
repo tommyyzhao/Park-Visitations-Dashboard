@@ -4,6 +4,7 @@ import VisitationChart from "./components/VisitationChart/VisitationChart"
 import MapComponent from "./components/MapComponent/MapComponent"
 import AutoComplete from "./components/AutoComplete/AutoComplete"
 import CustomizedSlider from "./components/TimeSlider/TimeSlider"
+import axios from 'axios'
 
 //import logo from './logo.svg' // commented out to stop compile warning
 import "./App.scss";
@@ -20,8 +21,22 @@ class App extends React.Component {
       parkLat: 38,
       selectedParkId: null,
       selectedParkName: " ",
+      parkVisitations: {}
     };
 
+  }
+
+  getVisitationsData = (id) => {
+    axios.get(`/visitations/${id}`)
+      .then((response) => {
+        const data = response.data
+        this.setState({ parkVisitations: data})
+        console.log('Visitation data received')
+        console.log(data)
+      })
+      .catch(() => {
+        alert('Error retrieving visitations data')
+      })
   }
 
   // Function for setting search parameters
@@ -34,13 +49,13 @@ class App extends React.Component {
       newParams['parkLng'] = params.selectedPark.longitude
       newParams['parkLat'] = params.selectedPark.latitude
       newParams['selectedParkId'] = params.selectedPark.safegraph_place_id
-    }
-    // seperate if statement to check if MapComponent updated the selected park
-    if (params.selectedParkId) {
+    } // separate if statement to check if MapComponent updated the selected park
+    else if (params.selectedParkId) {
       newParams['selectedParkId'] = params.selectedParkId
     }
     if (newParams) {
       this.setState(newParams)
+      this.getVisitationsData(newParams['selectedParkId'])
     }
   }
 

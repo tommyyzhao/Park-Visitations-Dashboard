@@ -49,12 +49,12 @@ class MapComponent extends React.PureComponent {
 
       map.addSource('all_parks', {
         type: 'geojson',
-        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/labeled_change.geojson'
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/data/labeled_change.geojson'
       });
 
       map.addSource('county_parks', {
         type: 'geojson',
-        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/src/data/county_change.geojson'
+        data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/data/county_change.geojson'
       });
 
       // add layer of parks with percent-change data
