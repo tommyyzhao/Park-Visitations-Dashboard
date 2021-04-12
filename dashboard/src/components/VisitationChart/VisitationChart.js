@@ -106,13 +106,14 @@ class VisitationChart extends React.PureComponent {
 
     let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
     valueAxis.tooltip.disabled = true;
-    valueAxis.title.text = "Monthly visitation counts"; // Y-AXIS LABEL
+    valueAxis.title.text = "Monthly Visitation Count"; // Y-AXIS LABEL
     valueAxis.title.fontSize = 13;
     valueAxis.title.fontFamily = "Arial, Sans Serif";
 
     let series = chart.series.push(new am4charts.LineSeries());
     series.dataFields.dateX = "date";
     series.dataFields.valueY = "value";
+    series.strokeWidth = 3;
 
     series.tooltipText = "{valueY.value}";
     chart.cursor = new am4charts.XYCursor();
@@ -135,7 +136,7 @@ class VisitationChart extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props === prevProps || !this.props.parkId) {
+    if (this.props === prevProps || !this.props.parkId || this.props.parkId === prevProps.parkId) {
       return //do nothing if props didn't change
     } else {
       // query for park visitation data from Fuse database
