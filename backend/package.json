@@ -10,6 +10,5 @@
     "mongoose": "^5.12.3"
   },
   "scripts": {
-    "postinstall": "npm run build"
   }
 }
