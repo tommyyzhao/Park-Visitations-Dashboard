@@ -36,9 +36,8 @@ class App extends React.Component {
     axios.get(`/visitations/${id}`)
       .then((response) => {
         const data = response.data
-        this.setState({ parkVisitations: data})
         console.log('Visitation data received')
-        console.log(data)
+        this.setState({ parkVisitations: data})
       })
       .catch(() => {
         console.log('Error retrieving visitations data')
@@ -49,22 +48,11 @@ class App extends React.Component {
   setSearch = (params) => {
     let newParams = {};
     // check if searchTerms has been updated
-    /*
-    if (params.selectedPark) {
-      newParams['selectedPark'] = params.selectedPark
-      newParams['selectedParkName'] = params.selectedPark.location_name
-      newParams['parkLng'] = params.selectedPark.longitude
-      newParams['parkLat'] = params.selectedPark.latitude
-      newParams['selectedParkId'] = params.selectedPark.safegraph_place_id
-    } // separate if statement to check if MapComponent updated the selected park
-    else*/ 
     if (params.selectedParkId && params.selectedParkId !== this.state.selectedParkId) {
       console.log('New park id received')
       newParams['selectedParkId'] = params.selectedParkId
       // get visitations data for selected park
       this.getVisitationsData(params.selectedParkId)
-      // load POI info for park
-      
     }
     if (newParams) {
       this.setState(newParams)
@@ -72,6 +60,7 @@ class App extends React.Component {
   }
   
   componentDidUpdate(prevProps, prevState) {
+    // load POI info for park
     if (this.state.selectedParkId !== prevState.selectedParkId) {
       console.log("Park id (state) changed, searching for park's POI info:")
       let park_info = this.poi_database.search(this.state.selectedParkId)[0].item
