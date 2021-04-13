@@ -168,7 +168,7 @@ class MapComponent extends React.PureComponent {
             ]
         },
         layout: {
-          'visibility': 'none'
+          'visibility': 'visible'
         }
       });
 
@@ -197,7 +197,7 @@ class MapComponent extends React.PureComponent {
                   [12, 12],
               ]
           },
-          "visibility": "none"
+          "visibility": "visible"
         }
       });
 
@@ -365,6 +365,8 @@ class MapComponent extends React.PureComponent {
     var link4 = document.createElement('a');
     link4.href = '#';
     link4.textContent = id4;
+
+    link2.className = 'active';
 
     link.onclick = function(e) {
         e.preventDefault();
