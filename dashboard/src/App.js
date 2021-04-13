@@ -1,9 +1,10 @@
 import React from "react"
 import TitleBar from "./components/TitleBar/TitleBar"
-import VisitationChart from "./components/VisitationChart/VisitationChart"
+//import VisitationChart from "./components/VisitationChart/VisitationChart"
+import OverlayChart from "./components/OverlayChart/OverlayChart"
 import MapComponent from "./components/MapComponent/MapComponent"
 import AutoComplete from "./components/AutoComplete/AutoComplete"
-import CustomizedSlider from "./components/TimeSlider/TimeSlider"
+import Fuse from "fuse.js"
 import axios from 'axios'
 
 //import logo from './logo.svg' // commented out to stop compile warning
@@ -23,7 +24,12 @@ class App extends React.Component {
       selectedParkName: " ",
       parkVisitations: {}
     };
-
+    this.poi_database = new Fuse(require("./data/park_pois.json"), {
+      keys: ['safegraph_place_id'],
+      shouldSort: false,
+      minMatchCharLength: 10,
+      threshold: 0.0
+    })
   }
 
   getVisitationsData = (id) => {
@@ -35,7 +41,7 @@ class App extends React.Component {
         console.log(data)
       })
       .catch(() => {
-        alert('Error retrieving visitations data')
+        console.log('Error retrieving visitations data')
       })
   }
 
@@ -43,6 +49,7 @@ class App extends React.Component {
   setSearch = (params) => {
     let newParams = {};
     // check if searchTerms has been updated
+    /*
     if (params.selectedPark) {
       newParams['selectedPark'] = params.selectedPark
       newParams['selectedParkName'] = params.selectedPark.location_name
@@ -50,12 +57,30 @@ class App extends React.Component {
       newParams['parkLat'] = params.selectedPark.latitude
       newParams['selectedParkId'] = params.selectedPark.safegraph_place_id
     } // separate if statement to check if MapComponent updated the selected park
-    else if (params.selectedParkId) {
+    else*/ 
+    if (params.selectedParkId && params.selectedParkId !== this.state.selectedParkId) {
+      console.log('New park id received')
       newParams['selectedParkId'] = params.selectedParkId
+      // get visitations data for selected park
+      this.getVisitationsData(params.selectedParkId)
+      // load POI info for park
+      
     }
     if (newParams) {
       this.setState(newParams)
-      this.getVisitationsData(newParams['selectedParkId'])
+    }
+  }
+  
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.selectedParkId !== prevState.selectedParkId) {
+      console.log("Park id (state) changed, searching for park's POI info:")
+      let park_info = this.poi_database.search(this.state.selectedParkId)[0].item
+      console.log(park_info)
+      this.setState({
+        parkLng: park_info.longitude,
+        parkLat:park_info.latitude,
+        selectedParkName: park_info.location_name
+      })
     }
   }
 
@@ -67,27 +92,23 @@ class App extends React.Component {
         <Grid container spacing={0} style={{ 'height': '100vh' }}>
           <Grid item xs={3} >
             <Grid container spacing={5}>
-              <Grid item xs={12}>
+              <Grid item xs={9}>
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <AutoComplete
                       selectedParkId={this.state.selectedParkId}
                       setSearch={this.setSearch} />
                   </Grid>
-                  <Grid item xs={12}>
-                    <CustomizedSlider
-                      setSearch={this.setSearch} />
-                  </Grid>
                 </Grid>
 
               </Grid>
               <Grid item xs={12} style={{ 'height': '100%' }}>
-                <VisitationChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName}/>
+                <OverlayChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
               </Grid>
             </Grid>
           </Grid>
           <Grid item xs={9}>
-            {this.state && this.state.selectedPark && this.state.selectedPark.location_name && <div className="sidebar-selected">Selected park: {this.state.selectedPark.location_name}</div>}
+            {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
             <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
           </Grid>
         </Grid>

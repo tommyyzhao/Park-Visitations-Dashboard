@@ -15,16 +15,11 @@ class AutoComplete extends React.Component {
     constructor(props) {
         super(props);
         // initialize Fuse database with Park POI data
-        this.database = new Fuse(require("../../data/park_pois.json"), {
+        this.database = new Fuse(require("../../data/poi_idname_only_compact.json"), {
             keys: ['name_location'],
             shouldSort: true,
-            minMatchCharLength: 2
-        })
-        this.database_ids = new Fuse(require("../../data/park_pois.json"), {
-            keys: ['safegraph_place_id'],
-            shouldSort: false,
-            minMatchCharLength: 10,
-            threshold: 0.0
+            threshold: 0.2,
+            minMatchCharLength: 3
         })
         this.onSuggestionSelected = this.onSuggestionSelected.bind(this)
       }
@@ -41,29 +36,39 @@ class AutoComplete extends React.Component {
         this.setState({ value: newValue })
     }
 
-   
+   /*
     onKeyUp = (e) => {
          // when Enter button is pressed
         if (e.charCode === 13 || e.keyCode === 13) {
             // return the Park POI object
-            console.log("searching")
+            console.log("Enter pressed, searching")
             let park_info = this.database.search(this.state.value)[0].item
-            console.log(park_info)
-            this.props.setSearch({ selectedPark: park_info })
+            let id = park_info.safegraph_place_id
+            console.log(id)
+            try {
+                this.props.setSearch({ selectedParkId: id })
+            } catch (e) {
+                console.error(e)
+            }
         }
-    }
+    }*/
 
     // function to get suggestions from park database
     onSuggestionsFetchRequested = ({ value }) => {
-        if (value.length < 5){
+        // some bool checks to optimize when values are searched
+        if (value.length < 5 || value.length%2===0 || value.length <= this.state.prevVal.length){ 
+            this.setState({prevVal: value})
             return
         }
         let results = []
-        let data = this.database.search(value).slice(0, 6)
+        let data = this.database.search(value).slice(0, 10)
         for (let i = 0; i < data.length; i++) {
             results.push(data[i].item.name_location);
         }
-        this.setState({ suggestions: results })
+        this.setState({ 
+            suggestions: results,
+            prevVal: value
+        })
     }
 
     onSuggestionsClearRequested = () => {
@@ -72,18 +77,13 @@ class AutoComplete extends React.Component {
 
     onSuggestionSelected(event, { suggestionValue }) {
         let park_info = this.database.search(suggestionValue)[0].item
-        this.props.setSearch({ selectedPark: park_info })
-      }
-
-    componentDidUpdate(prevProps) {
-        
-        if (this.props === prevProps || !this.props.selectedParkId || (this.props.selectedParkId && this.props.selectedParkId === prevProps.selectedParkId)) {
-            return //do nothing if props didn't change
-        } else {
-            let park_info = this.database_ids.search(this.props.selectedParkId)[0].item
-            console.log(park_info)
-            this.props.setSearch({ selectedPark: park_info })
-        }
+        try {
+            this.props.setSearch({ selectedParkId: park_info.safegraph_place_id })
+        } catch (e) {
+            console.error(e)
+        } finally {
+            console.log("Sent suggested park id")
+        }       
       }
 
     render() {
