@@ -108,7 +108,7 @@ class MapComponent extends React.PureComponent {
         'filter': ['!=', 'percent_change', ""],
         'minzoom': 8,
         'layout': {
-          'text-field': ['get', 'location_name'],
+          'text-field': ['get', 'location'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
           'text-radial-offset': 0.8,
           'text-font': ["Roboto Regular"],
@@ -180,7 +180,7 @@ class MapComponent extends React.PureComponent {
         'filter': ['all', ['!=', 'percent_change', ""], ['==', 'national', 1]],
         'minzoom': 4,
         'layout': {
-          'text-field': ['get', 'location_name'],
+          'text-field': ['get', 'location'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
           'text-radial-offset': 0.8,
           'text-font': ["Roboto Regular"],
@@ -252,7 +252,7 @@ class MapComponent extends React.PureComponent {
         'filter': ['all', ['!=', 'percent_change', ""], ['==', 'state', 1]],
         'minzoom': 4,
         'layout': {
-          'text-field': ['get', 'location_name'],
+          'text-field': ['get', 'location'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
           'text-radial-offset': 0.8,
           'text-font': ["Roboto Regular"],
