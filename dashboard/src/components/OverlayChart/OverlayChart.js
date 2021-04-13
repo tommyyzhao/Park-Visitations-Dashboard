@@ -3,11 +3,12 @@ import * as am4core from "@amcharts/amcharts4/core";
 import * as am4charts from "@amcharts/amcharts4/charts";
 import am4themes_animated from "@amcharts/amcharts4/themes/animated";
 import am4themes_material from "@amcharts/amcharts4/themes/material";
-import Fuse from "fuse.js"
 
 am4core.useTheme(am4themes_animated);
 am4core.useTheme(am4themes_material);
 
+// load lodash for its isEqual function
+//var _ = require("lodash");
 const test_sample =  {
   "safegraph_place_id": "sg:000024a5035444a2aa1ae7594937e4fc",
   "2018-01-01": 33,
@@ -49,6 +50,7 @@ const test_sample =  {
   "2021-01-01": 11,
   "2021-02-01": 10
  }
+ const covid_start = new Date("2/28/2020");
 
 class OverlayChart extends React.PureComponent {
   constructor(props) {
@@ -59,13 +61,6 @@ class OverlayChart extends React.PureComponent {
       parkName: props.parkName,
       parkData: props.parkData
     };
-    /*
-    this.database_patterns = new Fuse(require("../../data/poi_patterns_raw.json"), {
-      keys: ['safegraph_place_id'],
-      shouldSort: false,
-      minMatchCharLength: 10,
-      threshold: 0.0
-    })*/
   }
 
   componentDidMount() {
@@ -78,7 +73,6 @@ class OverlayChart extends React.PureComponent {
     chart.paddingRight = 20;
 
     let data = [];
-    let covid_start = new Date("2/28/2020");
     let avg_visitations_precovid = {}
     let avg_visitations_postcovid = {}
     
@@ -103,7 +97,6 @@ class OverlayChart extends React.PureComponent {
         }
       }
     }
-    console.log(avg_visitations_precovid)
     // convert arrays to their average
     for(const [key, value] of Object.entries(avg_visitations_precovid)) {
       let mean = value.reduce((a,b)=>a+b)/value.length
@@ -115,13 +108,13 @@ class OverlayChart extends React.PureComponent {
       avg_visitations_postcovid[key] = mean
       data.push({ postdate: new Date(2020, key, 1), name: "Post-2020", postcovid: mean });
     }
-    console.log(data)
     chart.data = data;
 
     var title = chart.titles.create();
-    title.text = "Average Monthly Visits for Park"; // CHART TITLE
+    title.text = "Pre-Covid/Covid Visitation for "; // CHART TITLE
     title.fontWeight = "bold";
     title.fontSize = 16;
+    title.marginBottom = 24;
     title.fontFamily = "Arial, Sans Serif";
 
     let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
@@ -135,13 +128,12 @@ class OverlayChart extends React.PureComponent {
     dateAxis.periodChangeDateFormats.setKey("month", "MMM");
     dateAxis.gridIntervals.setAll([
       { timeUnit: "month", count: 1 },
-      { timeUnit: "month", count: 2 },
-      { timeUnit: "month", count: 3 },
+      { timeUnit: "month", count: 2 }
     ]);
 
     let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
     valueAxis.tooltip.disabled = false;
-    valueAxis.title.text = "Monthly visitation counts"; // Y-AXIS LABEL
+    valueAxis.title.text = "Average Monthly Visits"; // Y-AXIS LABEL
     valueAxis.title.fontSize = 13;
     valueAxis.title.fontFamily = "Arial, Sans Serif";
 
@@ -175,30 +167,61 @@ class OverlayChart extends React.PureComponent {
       this.client.close();
     }
   }
-/*
+
   componentDidUpdate(prevProps) {
-    if (this.props === prevProps || !this.props.parkId || this.props.parkId === prevProps.parkId) {
+    // check if parkData is not empty and is not equal to prevProps
+    console.log(this.props)
+    if (!this.props.parkData || Object.keys(this.props.parkData).length === 0) {
+      console.log("parkData is empty")
       return //do nothing if props didn't change
+    } else if (prevProps.parkData.safegraph_place_id && this.props.parkData.safegraph_place_id === prevProps.parkData.safegraph_place_id) {
+      console.log("parkData has same id as prevProps")
+      return
     } else {
-      // query for park visitation data from Fuse database
-      console.log("searching for visitations data")
-      let visitations = this.database_patterns.search(this.props.parkId)[0]
-      console.log(visitations)
+      console.log("updating OverlayChart data")
+      console.log(this.props.parkData)
       let data = [];
-      // check for visitations data
-      if (visitations) {
-        for (const [key, value] of Object.entries(visitations.item)) {
-          if (key === 'safegraph_place_id') {continue}
-          data.push({ date: new Date(key), name: "name" + key, value: value });
-        }
-        this.chart.data = data;
-        this.title.text = `Monthly Visitations for ${this.props.parkName}`
-      } else {
-        this.title.text = `Error finding visitations data for ${this.props.parkName}`
-      }
+      let avg_visitations_precovid = {}
+      let avg_visitations_postcovid = {}
       
+      // average precovid/postcovid by month
+      // first get list of visitations by month, split between precovid and postcovid
+      for (const [key, value] of Object.entries(this.props.parkData)) {
+        let point_date = new Date(key);
+        // skip invalid (non-date) keys
+        if (isNaN(point_date)) {continue}
+        let point_month = point_date.getMonth();
+        if (point_date < covid_start) {
+          // if month already present, append point
+          if (avg_visitations_precovid[point_month]) {
+            avg_visitations_precovid[point_month].push(value)
+          } else {
+            avg_visitations_precovid[point_month] = [value]
+          }
+        } else { // same with postcovid data
+          if (avg_visitations_postcovid[point_month]) {
+            avg_visitations_postcovid[point_month].push(value)
+          } else {
+            avg_visitations_postcovid[point_month] = [value]
+          }
+        }
+      }
+      // convert arrays to their average
+      for(const [key, value] of Object.entries(avg_visitations_precovid)) {
+        let mean = value.reduce((a,b)=>a+b)/value.length
+        avg_visitations_precovid[key] = mean
+        data.push({ predate: new Date(2020, key, 1), name: "Pre-2020", precovid: mean });
+      }
+      for(const [key, value] of Object.entries(avg_visitations_postcovid)) {
+        let mean = value.reduce((a,b)=>a+b)/value.length
+        avg_visitations_postcovid[key] = mean
+        data.push({ postdate: new Date(2020, key, 1), name: "Post-2020", postcovid: mean });
+      }
+      console.log(data)
+      this.chart.data = data;
+      this.title.text = `Pre-Covid/Covid Visitation for ${this.props.parkName}`
     }
-  }*/
+  }
 
   render() {
     return (
