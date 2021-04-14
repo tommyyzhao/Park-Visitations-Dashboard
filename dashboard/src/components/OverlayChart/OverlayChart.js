@@ -75,7 +75,7 @@ class OverlayChart extends React.PureComponent {
     let data = [];
     let avg_visitations_precovid = {}
     let avg_visitations_postcovid = {}
-    
+
     // average precovid/postcovid by month
     // first get list of visitations by month, split between precovid and postcovid
     for (const [key, value] of Object.entries(this.state.visitations_data)) {
@@ -153,7 +153,7 @@ class OverlayChart extends React.PureComponent {
 
     chart.legend = new am4charts.Legend();
     chart.cursor = new am4charts.XYCursor();
-    
+
 
     this.title = title;
     this.chart = chart;
@@ -183,7 +183,7 @@ class OverlayChart extends React.PureComponent {
       let data = [];
       let avg_visitations_precovid = {}
       let avg_visitations_postcovid = {}
-      
+
       // average precovid/postcovid by month
       // first get list of visitations by month, split between precovid and postcovid
       for (const [key, value] of Object.entries(this.props.parkData)) {
@@ -219,7 +219,7 @@ class OverlayChart extends React.PureComponent {
       }
       console.log(data)
       this.chart.data = data;
-      this.title.text = `Pre-Covid/Covid Visitation for ${this.props.parkName}`
+      this.title.text = `Pre-Covid/Covid Visitation for \n ${this.props.parkName}`
     }
   }
 
