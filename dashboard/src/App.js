@@ -85,34 +85,35 @@ class App extends React.Component {
             <Tab>Tab 2</Tab>
           </TabList>
 
-          <TabPanel>
             <Grid container spacing={0} style={{ 'height': '100vh' }}>
               <Grid item xs={3} >
-                <Grid container spacing={5}>
-                  <Grid item xs={9}>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12}>
-                        <AutoComplete
-                          selectedParkId={this.state.selectedParkId}
-                          setSearch={this.setSearch} />
+                <TabPanel>
+                  <Grid container spacing={5}>
+                    <Grid item xs={9}>
+                      <Grid container spacing={3}>
+                        <Grid item xs={12}>
+                          <AutoComplete
+                            selectedParkId={this.state.selectedParkId}
+                            setSearch={this.setSearch} />
+                        </Grid>
                       </Grid>
-                    </Grid>
 
+                    </Grid>
+                    <Grid item xs={12} style={{ 'height': '100%' }}>
+                      <OverlayChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
+                    </Grid>
                   </Grid>
-                  <Grid item xs={12} style={{ 'height': '100%' }}>
-                    <OverlayChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
-                  </Grid>
-                </Grid>
+                </TabPanel>
+              
+                <TabPanel>
+                  <p>Tab 2</p>
+                </TabPanel>
               </Grid>
               <Grid item xs={9}>
                 {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
                 <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
               </Grid>
             </Grid>
-          </TabPanel>
-          <TabPanel>
-            <p>Tab 2</p>
-          </TabPanel>
         </Tabs>
       </div>
     );
