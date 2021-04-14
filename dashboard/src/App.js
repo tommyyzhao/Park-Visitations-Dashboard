@@ -79,42 +79,42 @@ class App extends React.Component {
       // Render components in a Grid
       <div>
         <TitleBar />
-        <Tabs defaultIndex={0} onSelect={index => console.log(index)}>
-          <TabList>
-            <Tab>Tab 1</Tab>
-            <Tab>Tab 2</Tab>
-          </TabList>
-
+        
             <Grid container spacing={0} style={{ 'height': '100vh' }}>
               <Grid item xs={3} >
-                <TabPanel>
-                  <Grid container spacing={5}>
-                    <Grid item xs={9}>
-                      <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                          <AutoComplete
-                            selectedParkId={this.state.selectedParkId}
-                            setSearch={this.setSearch} />
+                <Tabs defaultIndex={0} onSelect={index => console.log(index)}>
+                  <TabList>
+                    <Tab>Park Search</Tab>
+                    <Tab>County Search</Tab>
+                  </TabList>
+
+                  <TabPanel>
+                    <Grid container spacing={5}>
+                      <Grid item xs={9}>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12}>
+                            <AutoComplete
+                              selectedParkId={this.state.selectedParkId}
+                              setSearch={this.setSearch} />
+                          </Grid>
                         </Grid>
                       </Grid>
-
+                      <Grid item xs={12} style={{ 'height': '100%' }}>
+                        <OverlayChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
+                      </Grid>
                     </Grid>
-                    <Grid item xs={12} style={{ 'height': '100%' }}>
-                      <OverlayChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
-                    </Grid>
-                  </Grid>
-                </TabPanel>
-              
-                <TabPanel>
-                  <p>Tab 2</p>
-                </TabPanel>
+                  </TabPanel>          
+                  <TabPanel>
+                    <p>COUNTY SEARCH TAB ELEMENTS GO INSIDE THIS TAB PANEL</p>
+                  </TabPanel>
+                </Tabs>
               </Grid>
               <Grid item xs={9}>
                 {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
                 <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
               </Grid>
             </Grid>
-        </Tabs>
+        
       </div>
     );
   }
