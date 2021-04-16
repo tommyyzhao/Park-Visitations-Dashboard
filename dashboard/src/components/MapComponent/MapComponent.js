@@ -135,7 +135,7 @@ class MapComponent extends React.PureComponent {
         type: 'circle',
         source: 'all_parks',
         filter: ['all', ['!=', 'percent_change', ""], ['==', 'national', 1]],
-        minzoom: 6,
+        minzoom: 4,
         paint: {
           'circle-radius': [
               'interpolate',
@@ -207,7 +207,7 @@ class MapComponent extends React.PureComponent {
         type: 'circle',
         source: 'all_parks',
         filter: ['all', ['!=', 'percent_change', ""], ['==', 'state', 1]],
-        minzoom: 6,
+        minzoom: 4,
         paint: {
           'circle-radius': [
               'interpolate',
@@ -278,7 +278,7 @@ class MapComponent extends React.PureComponent {
         id: 'County',
         type: 'circle',
         source: 'county_parks',
-        minzoom: 6,
+        minzoom: 4,
         paint: {
           'circle-radius': [
               'interpolate',
