@@ -7,56 +7,12 @@ import am4themes_material from "@amcharts/amcharts4/themes/material";
 am4core.useTheme(am4themes_animated);
 am4core.useTheme(am4themes_material);
 
-// load lodash for its isEqual function
-//var _ = require("lodash");
-const test_sample =  {
-  "safegraph_place_id": "sg:000024a5035444a2aa1ae7594937e4fc",
-  "2018-01-01": 33,
-  "2018-02-01": 33,
-  "2018-03-01": 56,
-  "2018-04-01": 35,
-  "2018-05-01": 49,
-  "2018-06-01": 73,
-  "2018-07-01": 117,
-  "2018-08-01": 87,
-  "2018-09-01": 70,
-  "2018-10-01": 74,
-  "2018-11-01": 52,
-  "2018-12-01": 14,
-  "2019-01-01": 26,
-  "2019-02-01": 25,
-  "2019-03-01": 33,
-  "2019-04-01": 48,
-  "2019-05-01": 109,
-  "2019-06-01": 66,
-  "2019-07-01": 100,
-  "2019-08-01": 68,
-  "2019-09-01": 68,
-  "2019-10-01": 55,
-  "2019-11-01": 48,
-  "2019-12-01": 45,
-  "2020-01-01": 43,
-  "2020-02-01": 34,
-  "2020-03-01": 51,
-  "2020-04-01": 69,
-  "2020-05-01": 96,
-  "2020-06-01": 123,
-  "2020-07-01": 109,
-  "2020-08-01": 81,
-  "2020-09-01": 83,
-  "2020-10-01": 62,
-  "2020-11-01": 43,
-  "2020-12-01": 56,
-  "2021-01-01": 11,
-  "2021-02-01": 10
- }
  const covid_start = new Date("2/28/2020");
 
 class OverlayChart extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      visitations_data: test_sample,
       parkId: props.parkId,
       parkName: props.parkName,
       parkData: props.parkData
@@ -78,7 +34,7 @@ class OverlayChart extends React.PureComponent {
     
     // average precovid/postcovid by month
     // first get list of visitations by month, split between precovid and postcovid
-    for (const [key, value] of Object.entries(this.state.visitations_data)) {
+    for (const [key, value] of Object.entries(this.state.parkData)) {
       if (key === 'safegraph_place_id') {continue}
       let point_date = new Date(key);
       let point_month = point_date.getMonth();
@@ -169,7 +125,7 @@ class OverlayChart extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    // check if parkData is not empty and is not equal to prevProps
+    console.log("OverlayChart did update")
     console.log(this.props)
     if (!this.props.parkData || Object.keys(this.props.parkData).length === 0) {
       console.log("parkData is empty")
