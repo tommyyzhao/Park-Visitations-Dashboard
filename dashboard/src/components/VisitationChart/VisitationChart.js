@@ -91,7 +91,7 @@ class VisitationChart extends React.PureComponent {
         data.push({ date: point_date, name: "name" + key, value: value });
       }
         this.chart.data = data;
-        this.title.text = `Monthly Visitations for ${this.props.parkName}`
+        this.title.text = `Monthly Visitations for \n ${this.props.parkName}`
     }
   }
 
