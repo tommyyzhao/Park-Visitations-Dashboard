@@ -17,7 +17,7 @@ class VisitationChart extends React.PureComponent {
   }
 
   componentDidMount() {
-    let chart = am4core.create("chartdiv", am4charts.XYChart);
+    let chart = am4core.create("chartdiv-visitations", am4charts.XYChart);
     chart.paddingRight = 20;
 
     let data = [];
@@ -98,7 +98,7 @@ class VisitationChart extends React.PureComponent {
   render() {
     return (
       <div>
-        <div id="chartdiv" style={{ width: "100%", height: "500px" }}></div>
+        <div id="chartdiv-visitations" style={{ width: "100%", height: "500px" }}></div>
       </div>
     );
   }

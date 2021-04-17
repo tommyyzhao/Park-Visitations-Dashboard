@@ -20,7 +20,7 @@ class OverlayChart extends React.PureComponent {
   }
 
   componentDidMount() {
-    let chart = am4core.create("chartdiv", am4charts.XYChart);
+    let chart = am4core.create("chartdiv-overlay", am4charts.XYChart);
     chart.colors.list = [
       am4core.color("#845EC2"),
       am4core.color("#ff3d00")
@@ -182,7 +182,7 @@ class OverlayChart extends React.PureComponent {
   render() {
     return (
       <div>
-        <div id="chartdiv" style={{ width: "100%", height: "500px" }}></div>
+        <div id="chartdiv-overlay" style={{ width: "100%", height: "500px" }}></div>
       </div>
     );
   }
