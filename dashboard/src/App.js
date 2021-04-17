@@ -146,10 +146,10 @@ class App extends React.Component {
                             <Tab>Monthly Visitations</Tab>
                             <Tab>Pre-Covid/Post-Covid Visitations</Tab>
                           </TabList>
-                          <TabPanel {...this.state}>
+                          <TabPanel >
                             <OverlayChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
                           </TabPanel>
-                          <TabPanel {...this.state}>
+                          <TabPanel >
                             <VisitationChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
                           </TabPanel>
                         </Tabs>
