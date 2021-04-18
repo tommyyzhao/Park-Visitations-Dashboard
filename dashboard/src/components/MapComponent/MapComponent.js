@@ -674,7 +674,7 @@ class MapComponent extends React.PureComponent {
           ref={this.mapContainer}
           className="map-container"
           style={{
-            height: "100vh"
+            height: "90vh"
           }}>
         </div>
         <div id="color-legend" className="legend" >
