@@ -98,7 +98,6 @@ class AutoComplete extends React.Component {
 
         return (
             <Typography component="div">
-                <Box className="BoxText" fontWeight="fontWeightBold">Park Search</Box>
                 <Autosuggest
                     suggestions={suggestions}
                     onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}

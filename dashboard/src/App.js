@@ -1,16 +1,14 @@
 import React from "react"
+import {Button, Container, Row, Col} from 'react-bootstrap'
 import TitleBar from "./components/TitleBar/TitleBar"
-import VisitationChart from "./components/VisitationChart/VisitationChart"
-import OverlayChart from "./components/OverlayChart/OverlayChart"
+import MainChart from "./components/MainChart/MainChart"
 import MapComponent from "./components/MapComponent/MapComponent"
 import AutoComplete from "./components/AutoComplete/AutoComplete"
 import CountySearch from "./components/CountySearch/CountySearch"
 import Fuse from "fuse.js"
 import axios from 'axios'
 
-//import logo from './logo.svg' // commented out to stop compile warning
 import "./App.scss";
-import Grid from '@material-ui/core/Grid';
 import {Tab,Tabs,TabList,TabPanel} from 'react-tabs';
 import './react-tabs.scss';
 
@@ -23,7 +21,7 @@ class App extends React.Component {
       parkLat: 38,
       selectedParkId: null,
       selectedParkName: " ",
-      chartTabIndex: 0,
+      chartMode: "overlay",
       parkVisitations:  {
         "safegraph_place_id": "sg:000024a5035444a2aa1ae7594937e4fc",
         "2018-01-01": 33,
@@ -120,62 +118,58 @@ class App extends React.Component {
     return (
       // Render components in a Grid
       <div>
-        <TitleBar />
-            <Grid container spacing={0} style={{ 'height': '100vh' }}>
-              <Grid item xs={3} >
-                <Tabs defaultIndex={0} onSelect={index => console.log(index)}>
-                  <TabList>
-                    <Tab>Park Search</Tab>
-                    <Tab>County Search</Tab>
-                  </TabList>
+        <Container fluid>
+          <TitleBar />
+          <Row >
+            <Col xs={3}>
+              <Tabs defaultIndex={0} onSelect={index => console.log(index)}>
+                <TabList>
+                  <Tab><h2>Park</h2></Tab>
+                  <Tab><h2>County</h2></Tab>
+                </TabList>
 
-                  <TabPanel>
-                    <Grid container spacing={5}>
-                      <Grid item xs={9}>
-                        <Grid container spacing={3}>
-                          <Grid item xs={12}>
-                            <AutoComplete
-                              selectedParkId={this.state.selectedParkId}
-                              setSearch={this.setSearch} />
-                          </Grid>
-                        </Grid>
-                      </Grid>
-                      <Grid item xs={12} style={{ 'height': '100%' }}>
-                        <Tabs selectedIndex={this.chartTabIndex} onSelect={index => this.setState({chartTabIndex: index})} className="second">
-                          <TabList>
-                            <Tab>Monthly Visitations</Tab>
-                            <Tab>Pre-Covid/Post-Covid Visitations</Tab>
-                          </TabList>
-                          <TabPanel >
-                            <OverlayChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
-                          </TabPanel>
-                          <TabPanel >
-                            <VisitationChart parkId={this.state.selectedParkId} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
-                          </TabPanel>
-                        </Tabs>
-                      </Grid>
-                    </Grid>
-                  </TabPanel>          
-                  <TabPanel>
-                    <Grid item xs={9}>
-                        <Grid container spacing={3}>
-                          <Grid item xs={12}>
-                            <CountySearch
-                              selectedParkId={this.state.selectedParkId}
-                              setSearch={this.setSearch} />
-                          </Grid>
-                        </Grid>
-                      </Grid>
-                  </TabPanel>
-                </Tabs>
-              </Grid>
-              <Grid item xs={9}>
-                {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
-                <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
-              </Grid>
-            </Grid>
-        
+                <TabPanel>
+                  <Container fluid>
+                    <Row >
+                      <Col> 
+                        <AutoComplete
+                          selectedParkId={this.state.selectedParkId}
+                          setSearch={this.setSearch} />
+                      </Col>
+                    </Row>
+                    <Row xs={4} style={{'padding': '10px'}} className="justify-content-md-left">
+                      <h4>Chart type:</h4>
+                      <Col>
+                        <Button variant="primary">Overlay</Button>{' '}
+                      </Col>
+                      <Col>
+                        <Button variant="primary">Line</Button>{' '}
+                      </Col>
+                    </Row>
+                    <Row style={{ 'borderStyle': 'solid none dotted none', 'borderWidth': '1px' }}>
+                      <MainChart chartMode = {this.state.chartMode} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
+                    </Row>
+                  </Container>
+                </TabPanel>          
+                <TabPanel>
+                  <Container>
+                      <Row>
+                        <CountySearch
+                          selectedParkId={this.state.selectedParkId}
+                          setSearch={this.setSearch} />
+                      </Row>
+                  </Container>
+                </TabPanel>
+              </Tabs>
+            </Col>
+            <Col xs={9} style={{ 'marginBottom': '40px'}}>
+              {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
+              <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
+            </Col>
+          </Row>
+        </Container>
       </div>
+      
     );
   }
 }
