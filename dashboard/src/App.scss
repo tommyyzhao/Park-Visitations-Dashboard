@@ -1,5 +1,12 @@
 @import url("https://fonts.googleapis.com/css?family=Baloo+Thambi+2&display=swap");
 
+.navbar-brand {
+  font: 55px/54px monospace;
+  font-size: calc(40px + 2vmin);
+}
+
+@import "~bootstrap/scss/bootstrap";
+
 html {
   box-sizing: border-box;
   font-size: 10px;
@@ -16,56 +23,21 @@ body,
 
 .mapContainer {
   width: 100%;
-  height: 100%;
+  height: 95%;
   top: 0px;
   left: 0px;
   z-index: 1;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 10s linear;
-  }
-}
-
-.App-header {
-  text-align: center;
-  background-color: #282c34;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .sidebar {
   background-color: rgba(35, 55, 75, 0.9);
   color: #ffffff;
   padding: 6px 12px;
-  font: 15px/24px monospace;
+  font: 12px/16px monospace;
   z-index: 1;
   position: absolute;
-  top: 5vh;
-  left: 25%;
+  top: auto;
+  left: auto;
   margin-top: 20px; // space between sidebar and title bar
   margin-left: 10px; // space between sidebar and chart column
   border-radius: 4px;
@@ -75,24 +47,23 @@ body,
   background-color: rgba(35, 55, 75, 0.9);
   color: #ffffff;
   padding: 6px 12px;
-  font: 15px/24px monospace;
+  font: 12px/16px monospace;
   z-index: 1;
   position: absolute;
-  top: 10vh;
-  left: 25%;
-  margin: 12px;
+  top: 45px;
+  left: auto;
+  margin: 10px;
   border-radius: 4px;
   }
 
 .legend {
   background-color: rgba(255,255,255,0.8);
   border-radius: 3px;
-  bottom: 20px;
+  bottom: 80px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
   padding: 10px;
   position: absolute;
-  right: 10px;
+  right: 45px;
   z-index: 1;
   }
 
@@ -106,11 +77,6 @@ body,
   height: 10px;
   margin-right: 5px;
   width: 10px;
-}
-
-.Time-slider {
-  padding: 10px;
-  margin: 16px;
 }
 
 .BoxText {
@@ -147,3 +113,45 @@ body,
   float: right;
   text-align: right !important;
 }
+
+#menu {
+  background: rgba(255, 255, 255, 0.7);
+  position: absolute;
+  z-index: 1;
+  top: 70px;
+  right: 45px;
+  border-radius: 3px;
+  width: 120px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  font-family: 'Open Sans', sans-serif;
+  }
+  
+  #menu a {
+  font-size: 13px;
+  color: #404040;
+  display: block;
+  margin: 0;
+  padding: 0;
+  padding: 10px;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+  text-align: center;
+  }
+  
+  #menu a:last-child {
+  border: none;
+  }
+  
+  #menu a:hover {
+  background-color: #e2e2e2c7;
+  color: #404040;
+  }
+  
+  #menu a.active {
+  background-color: #3887be;
+  color: #ffffff;
+  }
+  
+  #menu a.active:hover {
+  background: #3074a4;
+  }
