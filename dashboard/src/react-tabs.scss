@@ -5,8 +5,6 @@
 .react-tabs__tab-list {
   margin: 0 0 10px;
   padding: 10px 0 0 0;
-  font-size: 16px;
-  font-family: Arial, sans-serif;
 }
 
 .react-tabs__tab {
@@ -19,7 +17,7 @@
   //border-right: none;
   position: relative;
   list-style: none;
-  padding: 6px 12px;
+  padding: 2px 12px;
   cursor: pointer;
   background: #c3cfdb;
   border-radius: 5px 5px 0 0;
