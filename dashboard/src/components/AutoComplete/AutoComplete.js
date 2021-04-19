@@ -2,8 +2,6 @@ import React from 'react';
 import Autosuggest from 'react-autosuggest';
 import Fuse from "fuse.js"
 import Typography from '@material-ui/core/Typography';
-import Box from '@material-ui/core/Box';
-//import { debounce } from 'throttle-debounce';
 import './styles.scss';
 
 class AutoComplete extends React.Component {
@@ -35,23 +33,6 @@ class AutoComplete extends React.Component {
     onChange = (event, { newValue }) => {
         this.setState({ value: newValue })
     }
-
-   /*
-    onKeyUp = (e) => {
-         // when Enter button is pressed
-        if (e.charCode === 13 || e.keyCode === 13) {
-            // return the Park POI object
-            console.log("Enter pressed, searching")
-            let park_info = this.database.search(this.state.value)[0].item
-            let id = park_info.safegraph_place_id
-            console.log(id)
-            try {
-                this.props.setSearch({ selectedParkId: id })
-            } catch (e) {
-                console.error(e)
-            }
-        }
-    }*/
 
     // function to get suggestions from park database
     onSuggestionsFetchRequested = ({ value }) => {
