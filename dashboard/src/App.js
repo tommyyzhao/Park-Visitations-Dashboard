@@ -1,5 +1,5 @@
 import React from "react"
-import {Button, Container, Row, Col, ButtonGroup, ToggleButton} from 'react-bootstrap'
+import {Container, Row, Col, ButtonGroup, ToggleButton} from 'react-bootstrap'
 import TitleBar from "./components/TitleBar/TitleBar"
 import MainChart from "./components/MainChart/MainChart"
 import MapComponent from "./components/MapComponent/MapComponent"
@@ -20,7 +20,7 @@ class App extends React.Component {
       parkLng: -97,
       parkLat: 38,
       selectedParkId: null,
-      selectedParkName: " ",
+      selectedParkName: "select a park",
       chartMode: "line",
       parkVisitations:  {
         "safegraph_place_id": "sg:000024a5035444a2aa1ae7594937e4fc",
