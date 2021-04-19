@@ -185,12 +185,12 @@ class MainChart extends React.PureComponent {
 
   render() {
     return (
-      <div>
+      <div style={{ width: "100%"}}>
         <h4 style={{ textAlign: 'right', margin:'auto', padding: '10px', display: this.state.chartMode === "overlay" ? "block" : "none"}}>Pre-Covid vs. Post-Covid Visitations</h4>
         <h4 style={{ textAlign: 'right', margin:'auto', padding: '10px', display: this.state.chartMode === "line" ? "block" : "none"}}>Monthly Visitors Line Chart</h4>
         <h4 style={{ textAlign: 'right', margin:'auto', padding: '0 10px'}}> ({this.state.parkName})</h4>
-        <div id="chartdiv-overlay" style={{ width: "400px", height: "420px", marginTop: "5px", display: this.state.chartMode === "overlay" ? "block" : "none"}}></div>
-        <div id="chartdiv-line" style={{ width: "400px", height: "420px", marginTop: "5px", display: this.state.chartMode === "line" ? "block" : "none"}}></div>
+        <div id="chartdiv-overlay" style={{ width: "100%", height: "420px", marginTop: "5px", display: this.state.chartMode === "overlay" ? "block" : "none"}}></div>
+        <div id="chartdiv-line" style={{ width: "100%", height: "420px", marginTop: "5px", display: this.state.chartMode === "line" ? "block" : "none"}}></div>
       </div>
     );
   }
