@@ -127,56 +127,58 @@ class App extends React.Component {
           <TitleBar />
           <Row >
             <Col xs={3}>
-              <Tabs defaultIndex={0} onSelect={index => console.log(index)}>
-                <TabList>
-                  <Tab><h2>Park</h2></Tab>
-                  <Tab><h2>County</h2></Tab>
-                </TabList>
+              <Row>
+                <Tabs defaultIndex={0} onSelect={index => console.log(index)} >
+                  <TabList >
+                    <Tab><h2>Park</h2></Tab>
+                    <Tab><h2>County</h2></Tab>
+                  </TabList>
 
-                <TabPanel>
-                  <Container fluid>
-                    <Row >
-                      <Col> 
-                        <AutoComplete
-                          selectedParkId={this.state.selectedParkId}
-                          setSearch={this.setSearch} />
-                      </Col>
-                    </Row>
-                    <Row xs={4} style={{'padding': '10px'}} className="justify-content-md-left">
-                      <h4>Chart type:</h4>
-                      <Col>
-                        <ButtonGroup toggle>
-                          {this.radios.map((radio, idx) => (
-                            <ToggleButton
-                              key={idx}
-                              type="radio"
-                              variant="primary"
-                              name="radio"
-                              value={radio.value}
-                              checked={this.state.chartMode === radio.value}
-                              onChange={(e) => this.setState({chartMode: e.currentTarget.value})}
-                            >
-                              {radio.name}
-                            </ToggleButton>
-                          ))}
-                        </ButtonGroup>
-                      </Col>
-                    </Row>
-                    <Row style={{ 'borderStyle': 'solid none dotted none', 'borderWidth': '1px' }}>
-                      <MainChart chartMode = {this.state.chartMode} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
-                    </Row>
-                  </Container>
-                </TabPanel>          
-                <TabPanel>
-                  <Container>
-                      <Row>
-                        <CountySearch
-                          selectedParkId={this.state.selectedParkId}
-                          setSearch={this.setSearch} />
+                  <TabPanel style={{margin: "20px 0 0 0"}}>
+                    <Container fluid>
+                      <Row >
+                        <Col> 
+                          <AutoComplete
+                            selectedParkId={this.state.selectedParkId}
+                            setSearch={this.setSearch} />
+                        </Col>
                       </Row>
-                  </Container>
-                </TabPanel>
-              </Tabs>
+                    </Container> 
+                  </TabPanel> 
+                  <TabPanel>
+                    <Container>
+                        <Row>
+                          <CountySearch
+                            selectedParkId={this.state.selectedParkId}
+                            setSearch={this.setSearch} />
+                        </Row>
+                    </Container>
+                  </TabPanel>    
+                </Tabs>
+              </Row>
+              <Row xs={4} style={{'padding': '10px', margin:"10px 0px"}} className="justify-content-md-left">
+                <h4>Chart type:</h4>
+                <Col>
+                  <ButtonGroup toggle>
+                    {this.radios.map((radio, idx) => (
+                      <ToggleButton size="lg"
+                        key={idx}
+                        type="radio"
+                        variant="primary"
+                        name="radio"
+                        value={radio.value}
+                        checked={this.state.chartMode === radio.value}
+                        onChange={(e) => this.setState({chartMode: e.currentTarget.value})}
+                      >
+                        {radio.name}
+                      </ToggleButton>
+                    ))}
+                  </ButtonGroup>
+                </Col>
+              </Row>
+              <Row>
+                <MainChart chartMode = {this.state.chartMode} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
+              </Row>    
             </Col>
             <Col xs={9} style={{ 'marginBottom': '40px'}}>
               {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
