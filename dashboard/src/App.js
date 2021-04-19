@@ -1,5 +1,5 @@
 import React from "react"
-import {Button, Container, Row, Col} from 'react-bootstrap'
+import {Button, Container, Row, Col, ButtonGroup, ToggleButton} from 'react-bootstrap'
 import TitleBar from "./components/TitleBar/TitleBar"
 import MainChart from "./components/MainChart/MainChart"
 import MapComponent from "./components/MapComponent/MapComponent"
@@ -21,7 +21,7 @@ class App extends React.Component {
       parkLat: 38,
       selectedParkId: null,
       selectedParkName: " ",
-      chartMode: "overlay",
+      chartMode: "line",
       parkVisitations:  {
         "safegraph_place_id": "sg:000024a5035444a2aa1ae7594937e4fc",
         "2018-01-01": 33,
@@ -70,6 +70,11 @@ class App extends React.Component {
       minMatchCharLength: 10,
       threshold: 0.0
     })
+    this.radios = [
+      { name: 'Line', value: 'line' },
+      { name: 'Overlay', value: 'overlay' },
+      { name: 'VisitorOrigin', value: 'origin' },
+    ];
   }
 
   getVisitationsData = (id) => {
@@ -140,10 +145,21 @@ class App extends React.Component {
                     <Row xs={4} style={{'padding': '10px'}} className="justify-content-md-left">
                       <h4>Chart type:</h4>
                       <Col>
-                        <Button variant="primary">Overlay</Button>{' '}
-                      </Col>
-                      <Col>
-                        <Button variant="primary">Line</Button>{' '}
+                        <ButtonGroup toggle>
+                          {this.radios.map((radio, idx) => (
+                            <ToggleButton
+                              key={idx}
+                              type="radio"
+                              variant="primary"
+                              name="radio"
+                              value={radio.value}
+                              checked={this.state.chartMode === radio.value}
+                              onChange={(e) => this.setState({chartMode: e.currentTarget.value})}
+                            >
+                              {radio.name}
+                            </ToggleButton>
+                          ))}
+                        </ButtonGroup>
                       </Col>
                     </Row>
                     <Row style={{ 'borderStyle': 'solid none dotted none', 'borderWidth': '1px' }}>

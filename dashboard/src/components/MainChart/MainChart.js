@@ -68,15 +68,6 @@ class MainChart extends React.PureComponent {
     }
     chartOverlay.data = data;
 
-    var titleOverlay = chartOverlay.titles.create();
-    titleOverlay.text = "Pre-Covid/Covid Visitations Overlay"; // CHART TITLE
-    titleOverlay.fontWeight = "bold";
-    titleOverlay.fontSize = 16;
-    titleOverlay.marginBottom = 24;
-    titleOverlay.align = "center"
-    titleOverlay.fontFamily = "Arial, Sans Serif";
-    titleOverlay.id = "overlay"
-
     let dateAxisOverlay = chartOverlay.xAxes.push(new am4charts.DateAxis());
     dateAxisOverlay.renderer.grid.template.location = 0;
     dateAxisOverlay.renderer.labels.template.location = 0.5;
@@ -114,7 +105,6 @@ class MainChart extends React.PureComponent {
     chartOverlay.legend = new am4charts.Legend();
     chartOverlay.cursor = new am4charts.XYCursor();
 
-    this.titleOverlay = titleOverlay;
     this.chartOverlay = chartOverlay;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -128,12 +118,6 @@ class MainChart extends React.PureComponent {
     }
 
     chartLine.data = data;
-
-    var titleLine = chartLine.titles.create();
-    titleLine.text = "Monthly Visitations for Park"; // CHART TITLE
-    titleLine.fontWeight = "bold";
-    titleLine.fontSize = 16;
-    titleLine.fontFamily = "Arial, Sans Serif";
 
     let dateAxisLine = chartLine.xAxes.push(new am4charts.DateAxis());
     dateAxisLine.renderer.grid.template.location = 0;
@@ -159,7 +143,6 @@ class MainChart extends React.PureComponent {
     scrollbarLineX.series.push(seriesLine);
     chartLine.scrollbarX = scrollbarLineX;
 
-    this.titleLine = titleLine;
     this.chartLine = chartLine;
   }
 
@@ -178,6 +161,10 @@ class MainChart extends React.PureComponent {
   componentDidUpdate(prevProps) {
     console.log("MainChart did update")
     console.log(this.props)
+    // switch chartMode when chartMode prop changes
+    if (this.props.chartMode && this.props.chartMode !== prevProps.chartMode) {
+      this.setState({chartMode: this.props.chartMode})
+    }
     if (!this.props.parkData || Object.keys(this.props.parkData).length === 0) {
       console.log("parkData is empty")
       return //do nothing if props didn't change
@@ -185,8 +172,10 @@ class MainChart extends React.PureComponent {
       console.log("parkData has same id as prevProps")
       return
     } else {
+      // update parkName state
+      this.setState({parkName: this.props.parkName})
+      // update data for AmCharts
       console.log("updating OverlayChart data")
-      console.log(this.props.parkData)
       let data = [];
       let avg_visitations_precovid = {}
       let avg_visitations_postcovid = {}
@@ -226,15 +215,28 @@ class MainChart extends React.PureComponent {
       }
       console.log(data)
       this.chartOverlay.data = data;
-      this.titleOverlay.text = `Pre-Covid/Covid Visitations Overlay\n ${this.props.parkName}`
+
+      // update Line Chart data
+      data = [];
+      console.log("updating visitations chart")
+      for (const [key, value] of Object.entries(this.props.parkData)) {
+        let point_date = new Date(key);
+        if (isNaN(point_date)) {continue}
+        data.push({ date: point_date, name: "name" + key, value: value });
+      }
+      this.chartLine.data = data;
+      
     }
   }
 
   render() {
     return (
       <div>
-        <div id="chartdiv-overlay" style={{ width: "400px", height: "420px", display: this.state.chartMode === "overlay" ? "block" : "none"}}></div>
-        <div id="chartdiv-line" style={{ width: "400px", height: "420px", display: this.state.chartMode === "line" ? "block" : "none"}}></div>
+        <h4 style={{ textAlign: 'right', margin:'auto', padding: '10px', display: this.state.chartMode === "overlay" ? "block" : "none"}}>Overlay of Pre-Covid and Post-Covid Visitations</h4>
+        <h4 style={{ textAlign: 'right', margin:'auto', padding: '10px', display: this.state.chartMode === "line" ? "block" : "none"}}>Monthly Visitors</h4>
+        <h4 style={{ textAlign: 'right', margin:'auto', padding: '0 10px'}}> ({this.state.parkName})</h4>
+        <div id="chartdiv-overlay" style={{ width: "400px", height: "420px", marginTop: "5px", display: this.state.chartMode === "overlay" ? "block" : "none"}}></div>
+        <div id="chartdiv-line" style={{ width: "400px", height: "420px", marginTop: "5px", display: this.state.chartMode === "line" ? "block" : "none"}}></div>
       </div>
     );
   }
