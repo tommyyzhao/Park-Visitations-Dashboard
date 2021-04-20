@@ -1,16 +1,14 @@
-@import url("https://fonts.googleapis.com/css?family=Baloo+Thambi+2&display=swap");
+
 .react-autosuggest__container {
   width: 100%;
   position: relative;
   display: inline-block;
-  margin-top: 0px;
-  margin-left: 8px;
+  margin: 0px 15vw 0vw 0vw;
 }
 
 .react-autosuggest__input {
-  width: 90%;
-  height: 16px;
-  padding: 10px;
+  width: 95%;
+  padding: 8px;
   font-weight: 300;
   font-size: 13px;
   border: 1px solid rgba(0, 126, 255, 0.24);
@@ -47,7 +45,7 @@
 
 .react-autosuggest__suggestion {
   cursor: pointer;
-  padding: 10px;
+  padding: 5px;
   border-bottom: 1px solid #eee;
   width: 95%;
   white-space: nowrap;
