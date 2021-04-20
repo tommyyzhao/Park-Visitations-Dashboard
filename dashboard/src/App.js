@@ -93,12 +93,15 @@ class App extends React.Component {
   setSearch = (params) => {
     let newParams = {};
     // check if searchTerms has been updated
-    if (params.selectedParkId && params.selectedParkId !== this.state.selectedParkId) {
+    if (params.selectedParkId && params.selectedParkId !== this.state.selectedParkId && params.selectedParkId !== -1) {
       console.log('New park id received')
       newParams['selectedParkId'] = params.selectedParkId
       // get visitations data for selected park
       this.getVisitationsData(params.selectedParkId)
     }
+    // in case park visitations is passed directly to setSearch
+    if (params.parkVisitations) { newParams['parkVisitations'] = params.parkVisitations }
+    if (params.selectedParkName) { newParams['selectedParkName'] = params.selectedParkName }
     if (newParams) {
       this.setState(newParams)
     }
@@ -106,7 +109,8 @@ class App extends React.Component {
   
   componentDidUpdate(prevProps, prevState) {
     // load POI info for park
-    if (this.state.selectedParkId !== prevState.selectedParkId) {
+    // if parkId is -1 then that means a county is selected so don't query mongo
+    if (this.state.selectedParkId !== prevState.selectedParkId || !this.state.selectedParkId === -1) {
       console.log("Park id (state) changed, searching for park's POI info:")
       let park_info = this.poi_database.search(this.state.selectedParkId)[0].item
       console.log(park_info)
@@ -122,71 +126,63 @@ class App extends React.Component {
 
     return (
       // Render components in a Grid
-      <div>
-        <Container fluid>
-          <TitleBar />
-          <Row >
-            <Col xs={3}>
-              <Row>
-                <Tabs defaultIndex={0} onSelect={index => console.log(index)} >
-                  <TabList >
-                    <Tab><h2>Park</h2></Tab>
-                    <Tab><h2>County</h2></Tab>
-                  </TabList>
+      <Container fluid>
+        <TitleBar />
+        <Row >
+          <Col xs={12} sm={5} md={4} lg={3}>
+            <Row>
+              <Tabs defaultIndex={0} onSelect={index => console.log(index)} >
+                <TabList >
+                  <Tab><h2>Park</h2></Tab>
+                  <Tab><h2>County</h2></Tab>
+                </TabList>
 
-                  <TabPanel style={{margin: "20px 0 0 0"}}>
-                    <Container fluid>
-                      <Row >
-                        <Col> 
-                          <AutoComplete
-                            selectedParkId={this.state.selectedParkId}
-                            setSearch={this.setSearch} />
-                        </Col>
-                      </Row>
-                    </Container> 
-                  </TabPanel> 
-                  <TabPanel>
-                    <Container>
-                        <Row>
-                          <CountySearch
-                            selectedParkId={this.state.selectedParkId}
-                            setSearch={this.setSearch} />
-                        </Row>
-                    </Container>
-                  </TabPanel>    
-                </Tabs>
-              </Row>
-              <Row xs={4} style={{'padding': '10px', margin:"10px 0px"}} className="justify-content-md-left">
-                <h4>Chart type:</h4>
-                <Col>
-                  <ButtonGroup toggle>
-                    {this.radios.map((radio, idx) => (
-                      <ToggleButton size="lg"
-                        key={idx}
-                        type="radio"
-                        variant="primary"
-                        name="radio"
-                        value={radio.value}
-                        checked={this.state.chartMode === radio.value}
-                        onChange={(e) => this.setState({chartMode: e.currentTarget.value})}
-                      >
-                        {radio.name}
-                      </ToggleButton>
-                    ))}
-                  </ButtonGroup>
-                </Col>
-              </Row>
-              <Row>
-                <MainChart chartMode = {this.state.chartMode} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
-              </Row>    
-            </Col>
-            <Col xs={9} style={{ 'marginBottom': '40px'}}>
-              {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
-              <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
-            </Col>
-          </Row>
-        </Container>
-      </div>
+                <TabPanel style={{margin: "20px 0 0 0"}}>
+                  <Container fluid>
+                    <AutoComplete
+                      selectedParkId={this.state.selectedParkId}
+                      setSearch={this.setSearch} />
+                  </Container>
+                </TabPanel> 
+                <TabPanel style={{margin: "20px 0 0 0"}}>
+                  <Container fluid>
+                      <CountySearch
+                        selectedParkId={this.state.selectedParkId}
+                        setSearch={this.setSearch} />
+                  </Container>
+                </TabPanel>    
+              </Tabs>
+            </Row>
+            <Row xs={4} style={{'padding': '10px', margin:"10px 0px"}} className="justify-content-md-left">
+              <h4>Chart type:</h4>
+              <Col>
+                <ButtonGroup toggle>
+                  {this.radios.map((radio, idx) => (
+                    <ToggleButton size="lg"
+                      key={idx}
+                      type="radio"
+                      variant="primary"
+                      name="radio"
+                      value={radio.value}
+                      checked={this.state.chartMode === radio.value}
+                      onChange={(e) => this.setState({chartMode: e.currentTarget.value})}
+                    >
+                      {radio.name}
+                    </ToggleButton>
+                  ))}
+                </ButtonGroup>
+              </Col>
+            </Row>
+            <Row>
+              <MainChart chartMode = {this.state.chartMode} parkName={this.state.selectedParkName} parkData={this.state.parkVisitations}/>
+            </Row>    
+          </Col>
+          <Col xs={12} sm={7} md={8} lg={9} style={{ 'marginBottom': '40px'}}>
+            {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
+            <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
+          </Col>
+        </Row>
+      </Container>
       
     );
   }

@@ -3,8 +3,6 @@ import Autosuggest from 'react-autosuggest';
 import Fuse from "fuse.js"
 import Typography from '@material-ui/core/Typography';
 import Box from '@material-ui/core/Box';
-//import { debounce } from 'throttle-debounce';
-import './styles.scss';
 
 class CountySearch extends React.Component {
     state = {
@@ -15,7 +13,7 @@ class CountySearch extends React.Component {
     constructor(props) {
         super(props);
         // initialize Fuse database with Park POI data
-        this.database = new Fuse(require("../../data/poi_idname_only_compact.json"), {
+        this.database = new Fuse(require("../../data/patterns_by_county.json"), {
             keys: ['name_location'],
             shouldSort: true,
             threshold: 0.2,
@@ -61,11 +59,15 @@ class CountySearch extends React.Component {
     onSuggestionSelected(event, { suggestionValue }) {
         let park_info = this.database.search(suggestionValue)[0].item
         try {
-            this.props.setSearch({ selectedParkId: park_info.safegraph_place_id })
+            this.props.setSearch({ 
+                parkVisitations: park_info, 
+                selectedParkName: park_info.name_location, 
+                selectedParkId: -1,
+            })
         } catch (e) {
             console.error(e)
         } finally {
-            console.log("Sent suggested park id")
+            console.log("Sent county data")
         }       
       }
 
@@ -80,18 +82,15 @@ class CountySearch extends React.Component {
         }
 
         return (
-            <Typography component="div">
-                <Box className="BoxText" fontWeight="fontWeightBold">County Search</Box>
-                <Autosuggest
-                    suggestions={suggestions}
-                    onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
-                    onSuggestionsClearRequested={this.onSuggestionsClearRequested}
-                    onSuggestionSelected={this.onSuggestionSelected}
-                    getSuggestionValue={suggestion => suggestion}
-                    renderSuggestion={this.renderSuggestion}
-                    inputProps={inputProps}
-                />
-            </Typography>
+            <Autosuggest
+                suggestions={suggestions}
+                onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
+                onSuggestionsClearRequested={this.onSuggestionsClearRequested}
+                onSuggestionSelected={this.onSuggestionSelected}
+                getSuggestionValue={suggestion => suggestion}
+                renderSuggestion={this.renderSuggestion}
+                inputProps={inputProps}
+            />
         )
     }
 }
