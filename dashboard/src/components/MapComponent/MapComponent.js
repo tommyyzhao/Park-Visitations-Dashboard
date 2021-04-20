@@ -19,9 +19,9 @@ class MapComponent extends React.PureComponent {
     };
     this.mapContainer = React.createRef();
 
-    this.negative_color = 'rgba(225,19,19,0.8)'
-    this.neutral_color = 'rgba(227, 237, 248, 0.885)'
-    this.positive_color = 'rgba(19,225,19,0.8)'
+    this.negative_color = 'rgba(197,27,125,0.8)'
+    this.neutral_color = 'rgba(247,247,247, 0.885)'
+    this.positive_color = 'rgba(77,146,33,0.8)'
   }
 
   componentDidMount() {

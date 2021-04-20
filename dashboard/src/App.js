@@ -133,8 +133,8 @@ class App extends React.Component {
             <Row>
               <Tabs defaultIndex={0} onSelect={index => console.log(index)} >
                 <TabList >
-                  <Tab><h2>Park</h2></Tab>
-                  <Tab><h2>County</h2></Tab>
+                  <Tab><h2>Park Search</h2></Tab>
+                  <Tab><h2>County Search</h2></Tab>
                 </TabList>
 
                 <TabPanel style={{margin: "20px 0 0 0"}}>
