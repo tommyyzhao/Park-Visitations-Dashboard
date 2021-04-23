@@ -1,14 +1,17 @@
 {
-  "name": "Park Visitation Dashboard",
+  "name": "park_visitation_dashboard",
   "version": "1.0.0",
   "description": "Dashboard to track visitations to parks",
   "main": "server.js",
   "scripts": {
 	"test": "echo \"Error: no test specified\" && exit 1",
 	"build-app": "cd dashboard && npm run build",
-	"install-app": "cd dashboard && npm install"
-	"heroku-postbuild": "npm run install-app && npm run build-app"
-	"start": "node server.js"
+	"install-app": "cd dashboard && npm install",
+	"heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm run install-app && npm run build-app",
+	"start": "node server.js",
+	"client": "npm start --prefix dashboard",
+	"server": "node server.js",
+	"dev": "concurrently \"npm run server\" \"npm run client\"",
 	"app-start": "cd dashboard && npm start"
   },
   "private": true,
@@ -17,5 +20,8 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "mongoose": "^5.12.3"
+  },
+  "engines": {
+	"node": "12.13.0"
   }
 }
