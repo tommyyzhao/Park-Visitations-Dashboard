@@ -4,6 +4,8 @@ import mapboxgl from "mapbox-gl"
 //import { MapboxLayer } from '@deck.gl/mapbox'
 //import {ScatterplotLayer} from '@deck.gl/layers';
 
+// eslint-disable-next-line import/no-webpack-loader-syntax
+mapboxgl.workerClass = require('worker-loader!mapbox-gl/dist/mapbox-gl-csp-worker').default;
 
 mapboxgl.accessToken =
 'pk.eyJ1IjoienRvbXMiLCJhIjoiY2tucTQ5ajhiMGE1dDJxcXZueTg4eTVrNiJ9.ChK9cBOSuoX-v1thHfM43A';
@@ -31,6 +33,7 @@ class MapComponent extends React.PureComponent {
       center: [this.state.lng, this.state.lat],
       zoom: this.state.zoom
     });
+    console.log("Mapbox loaded")
 
 
     this.setState({
