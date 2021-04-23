@@ -6,7 +6,7 @@ import mapboxgl from "mapbox-gl"
 
 
 mapboxgl.accessToken =
-'pk.eyJ1Ijoic2NvdHRwZXoiLCJhIjoiY2tjNHYzMWlmMDk0dzJ0cXBlYmY3ZGFkMSJ9.3sV7qx5UKfvCQPFXXTGFBw';
+'pk.eyJ1IjoienRvbXMiLCJhIjoiY2tucTQ5ajhiMGE1dDJxcXZueTg4eTVrNiJ9.ChK9cBOSuoX-v1thHfM43A';
 
 
 class MapComponent extends React.PureComponent {
