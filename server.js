@@ -22,6 +22,7 @@ const visitationsRouter = require('./routes/visitations')
 app.use('/visitations', visitationsRouter)
 
 if (process.env.NODE_ENV === 'production') {
+    app.use(express.static('dashboard/build'))
     console.log('API in production mode')
 }
 
