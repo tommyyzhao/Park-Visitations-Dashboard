@@ -33,7 +33,6 @@ class MapComponent extends React.PureComponent {
       center: [this.state.lng, this.state.lat],
       zoom: this.state.zoom
     });
-    console.log("Mapbox loaded")
 
 
     this.setState({
@@ -468,7 +467,6 @@ class MapComponent extends React.PureComponent {
 
         for (var l = 0; l < layers4.length; l++) {
             var visibility4 = map.getLayoutProperty(layers4[l], 'visibility');
-            console.log(visibility4);
             if (visibility4 === 'visible') {
                 map.setLayoutProperty(layers4[l], 'visibility', 'none');
                 link4.className = '';

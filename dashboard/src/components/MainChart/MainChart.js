@@ -129,7 +129,6 @@ class MainChart extends React.PureComponent {
       // update parkName state
       this.setState({parkName: this.props.parkName})
       // update data for AmCharts
-      console.log("updating OverlayChart data")
       let data = [];
       let avg_visitations_precovid = {}
       let avg_visitations_postcovid = {}
@@ -167,12 +166,10 @@ class MainChart extends React.PureComponent {
         avg_visitations_postcovid[key] = mean
         data.push({ postdate: new Date(2020, key, 1), name: "Post-2020", postcovid: mean });
       }
-      console.log(data)
       this.chartOverlay.data = data;
 
       // update Line Chart data
       data = [];
-      console.log("updating visitations chart")
       for (const [key, value] of Object.entries(this.props.parkData)) {
         let point_date = new Date(key);
         if (isNaN(point_date)) {continue}

@@ -128,7 +128,7 @@ class App extends React.Component {
       // Render components in a Grid
       <Container fluid>
         <TitleBar />
-        <Row >
+        <Row style={{'maxHeight': '95vh', 'overflow-y': 'scroll'}}>
           <Col xs={12} sm={5} md={4} lg={3}>
             <Row>
               <Tabs defaultIndex={0} onSelect={index => console.log(index)} >
