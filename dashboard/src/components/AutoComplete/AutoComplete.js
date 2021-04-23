@@ -1,7 +1,6 @@
 import React from 'react';
 import Autosuggest from 'react-autosuggest';
 import Fuse from "fuse.js"
-import Typography from '@material-ui/core/Typography';
 import './styles.scss';
 
 class AutoComplete extends React.Component {

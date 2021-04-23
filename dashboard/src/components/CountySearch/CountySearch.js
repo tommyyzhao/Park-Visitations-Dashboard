@@ -1,8 +1,6 @@
 import React from 'react';
 import Autosuggest from 'react-autosuggest';
 import Fuse from "fuse.js"
-import Typography from '@material-ui/core/Typography';
-import Box from '@material-ui/core/Box';
 
 class CountySearch extends React.Component {
     state = {

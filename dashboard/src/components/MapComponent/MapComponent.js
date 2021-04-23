@@ -27,7 +27,7 @@ class MapComponent extends React.PureComponent {
   componentDidMount() {
     var map = new mapboxgl.Map({
       container: this.mapContainer.current,
-      style: "mapbox://styles/mapbox/outdoors-v11",
+      style: "mapbox://styles/ztoms/cknur1zjf136m17per0xi3rz7",
       center: [this.state.lng, this.state.lat],
       zoom: this.state.zoom
     });
