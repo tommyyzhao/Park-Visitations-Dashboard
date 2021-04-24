@@ -1,10 +1,5 @@
 @import url("https://fonts.googleapis.com/css?family=Baloo+Thambi+2&display=swap");
 
-.navbar-brand {
-  font: 55px/54px monospace;
-  font-size: calc(40px + 2vmin);
-}
-
 @import "~bootstrap/scss/bootstrap";
 
 html {
@@ -19,14 +14,6 @@ body,
   margin: 0;
   padding: 0;
   overflow: hidden;
-}
-
-.mapContainer {
-  width: 100%;
-  height: 95%;
-  top: 0px;
-  left: 0px;
-  z-index: 1;
 }
 
 .sidebar {
@@ -123,16 +110,14 @@ body,
   border-radius: 3px;
   width: 120px;
   border: 1px solid rgba(0, 0, 0, 0.4);
-  font-family: 'Open Sans', sans-serif;
   }
   
   #menu a {
-  font-size: 13px;
+  font-size: 16px;
   color: #404040;
   display: block;
   margin: 0;
-  padding: 0;
-  padding: 10px;
+  padding: 5px;
   text-decoration: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
   text-align: center;
