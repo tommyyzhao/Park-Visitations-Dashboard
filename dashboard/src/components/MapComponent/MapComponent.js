@@ -670,12 +670,14 @@ class MapComponent extends React.PureComponent {
         <div className="sidebar">
             Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
         </div>
-        <nav id="menu"></nav>
+        <nav id="menu"><h3 style={{borderStyle: 'solid', borderWidth: '1px', textAlign: 'center', padding:'5px'}}>Filter by type</h3></nav>
         <div
           ref={this.mapContainer}
           className="map-container"
           style={{
-            height: "90vh"
+            height: "90vh",
+            top: '10px',
+            right: '0px'
           }}>
         </div>
         <div id="color-legend" className="legend" >
