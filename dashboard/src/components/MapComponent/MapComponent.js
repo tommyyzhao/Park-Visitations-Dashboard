@@ -1,7 +1,8 @@
 import React from "react"
 import mapboxgl from "mapbox-gl"
 //import { timeUnitDurations } from "@amcharts/amcharts4/.internal/core/utils/Time";
-//import { MapboxLayer } from '@deck.gl/mapbox'
+import { MapboxLayer } from '@deck.gl/mapbox'
+import {ArcLayer} from '@deck.gl/layers'
 //import {ScatterplotLayer} from '@deck.gl/layers';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -15,8 +16,6 @@ class MapComponent extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      lng: -97,
-      lat: 38,
       zoom: 4
     };
     this.mapContainer = React.createRef();
@@ -24,13 +23,47 @@ class MapComponent extends React.PureComponent {
     this.negative_color = 'rgba(197,27,125,0.8)'
     this.neutral_color = 'rgba(247,247,247, 0.885)'
     this.positive_color = 'rgba(77,146,33,0.8)'
+
+    this.testData = {
+      "60376025041":7,
+      "60376025041_longitude":-118.3373236,
+      "60376025041_latitude":33.9073685,
+      "60374620011":5,
+      "60374620011_longitude":-118.1439295,
+      "60374620011_latitude":34.1654279,
+      "60374625003":4.33333333333333,
+      "60374625003_longitude":-118.1057541,
+      "60374625003_latitude":34.1666722,
+      "60374305011":4.42857142857143,
+      "60374305011_longitude":-118.0569317,
+      "60374305011_latitude":34.1748251,
+      "60374013122":4.25,
+      "60374013122_longitude":-117.8294514,
+      "60374013122_latitude":34.095830600000006,
+      "60710015011":8,
+      "60710015011_longitude":-117.6392854,
+      "60710015011_latitude":34.067719700000005}
+      this.arcData = []
+      this.arcLayer = new MapboxLayer({
+        id: 'deckgl-arc',
+        type: ArcLayer,
+        data: [],
+        getSourcePosition: d => d.source,
+        getTargetPosition: d => d.target,
+        getSourceColor: [255, 123, 82],
+        getTargetColor: [255, 61, 0],
+        getWidth: d => Math.sqrt(d.visits),
+        pickable: true,
+        onHover: info => this.setState({arcHoverInfo: info}),
+        visible: true
+      })
   }
 
   componentDidMount() {
     var map = new mapboxgl.Map({
       container: this.mapContainer.current,
       style: "mapbox://styles/ztoms/cknur1zjf136m17per0xi3rz7",
-      center: [this.state.lng, this.state.lat],
+      center: [this.props.parkLng, this.props.parkLat],
       zoom: this.state.zoom
     });
 
@@ -38,8 +71,7 @@ class MapComponent extends React.PureComponent {
     this.setState({
       lng: map.getCenter().lng.toFixed(4),
       lat: map.getCenter().lat.toFixed(4),
-      zoom: map.getZoom().toFixed(2),
-      safe_id: ""
+      zoom: map.getZoom().toFixed(2)
     });
 
     map.on("move", () => {
@@ -59,6 +91,8 @@ class MapComponent extends React.PureComponent {
         data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/dashboard/src/data/county_change.geojson'
       });
 
+      map.addLayer(this.arcLayer)
+
       // add layer of parks with percent-change data
       map.addLayer({
         id: 'All',
@@ -71,16 +105,11 @@ class MapComponent extends React.PureComponent {
               'interpolate',
               ['linear'],
               ['get', 'visitor_counts_postcovid'],
-              1,
-              3,
-              10,
-              6,
-              100,
-              12,
-              1000,
-              24,
-              10000,
-              32
+              1,3,
+              10,6,
+              100,12,
+              1000,24,
+              10000,32
             ],
           'circle-blur': 0.2,
           'circle-stroke-width': 0.1,
@@ -89,12 +118,9 @@ class MapComponent extends React.PureComponent {
             'interpolate',
             ['linear'],
             ['get', 'percent_change'],
-            -1,
-            this.negative_color,
-            0,
-            this.neutral_color,
-            1,
-            this.positive_color
+            -1,this.negative_color,
+            0,this.neutral_color,
+            1,this.positive_color
             ]
         },
         layout: {
@@ -143,16 +169,11 @@ class MapComponent extends React.PureComponent {
               'interpolate',
               ['linear'],
               ['get', 'visitor_counts_postcovid'],
-              1,
-              3,
-              10,
-              6,
-              100,
-              12,
-              1000,
-              24,
-              10000,
-              32
+              1,3,
+              10,6,
+              100,12,
+              1000,24,
+              10000,32
             ],
           'circle-blur': 0.2,
           'circle-stroke-width': 0.1,
@@ -161,12 +182,9 @@ class MapComponent extends React.PureComponent {
             'interpolate',
             ['linear'],
             ['get', 'percent_change'],
-            -1,
-            this.negative_color,
-            0,
-            this.neutral_color,
-            1,
-            this.positive_color
+            -1,this.negative_color,
+            0,this.neutral_color,
+            1,this.positive_color
             ]
         },
         layout: {
@@ -215,16 +233,11 @@ class MapComponent extends React.PureComponent {
               'interpolate',
               ['linear'],
               ['get', 'visitor_counts_postcovid'],
-              1,
-              3,
-              10,
-              6,
-              100,
-              12,
-              1000,
-              24,
-              10000,
-              32
+              1,3,
+              10,6,
+              100,12,
+              1000,24,
+              10000,32
             ],
           'circle-blur': 0.2,
           'circle-stroke-width': 0.1,
@@ -233,12 +246,9 @@ class MapComponent extends React.PureComponent {
             'interpolate',
             ['linear'],
             ['get', 'percent_change'],
-            -1,
-            this.negative_color,
-            0,
-            this.neutral_color,
-            1,
-            this.positive_color
+            -1,this.negative_color,
+            0,this.neutral_color,
+            1,this.positive_color
             ]
         },
         layout: {
@@ -286,16 +296,11 @@ class MapComponent extends React.PureComponent {
               'interpolate',
               ['linear'],
               ['get', 'visitor_counts_postcovid'],
-              1,
-              3,
-              10,
-              6,
-              100,
-              12,
-              1000,
-              24,
-              10000,
-              32
+              1,3,
+              10,6,
+              100,12,
+              1000,24,
+              10000,32
             ],
           'circle-blur': 0.2,
           'circle-stroke-width': 0.1,
@@ -304,12 +309,9 @@ class MapComponent extends React.PureComponent {
             'interpolate',
             ['linear'],
             ['get', 'percent_change'],
-            -1,
-            this.negative_color,
-            0,
-            this.neutral_color,
-            1,
-            this.positive_color
+            -1,this.negative_color,
+            0,this.neutral_color,
+            1,this.positive_color
             ]
         },
         layout: {
@@ -502,7 +504,7 @@ class MapComponent extends React.PureComponent {
       this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
     });
 
-    map.on('click', 'National', (e) => {
+    map.on('click', 'National', (e) => {      
       this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
     });
 
@@ -643,33 +645,91 @@ class MapComponent extends React.PureComponent {
 
   componentDidUpdate(prevProps) {
     const data  = this.props
-    const mapIsLoaded  = this.state
 
-    if (!mapIsLoaded) {
-      console.log("map is not loaded")
-      return
-    }
-
-    if (data === prevProps) {
-      return //do nothing if props didn't change
+    // fly to parkLng and parkLat if changed
+    if (data.parkLng && data.parkLng === prevProps.parkLng) {
+       //console.log("selected coordinates unchanged") //do nothing if props didn't change
     } else {
-      this.setState({lat: data.parkLat, lng: data.parkLng})
       this.map.flyTo({
         center: [data.parkLng, data.parkLat],
-        zoom: 18
+        zoom: 14
       })
     }
+    
+    // updated arc layer if origin Data is updated
+    if (!data.originCovidData || !data.originCovidData.safegraph_place_id) {
+      //console.log("no originCovidData")
+    } else if (prevProps.originCovidData && prevProps.originCovidData.safegraph_place_id && data.originCovidData.safegraph_place_id === prevProps.originCovidData.safegraph_place_id) {
+      console.log("originCovid data unchanged")
+    } else {
+      let arcData = []
+      let tempKeys = {} //temp var to parse data by keys
+
+      // due to our data schema we must first group by census block
+      for (const [key, value] of Object.entries(data.originCovidData)) {
+        // skip invalid keys
+        if (key === "_id" || key === "safegraph_place_id") {
+          continue
+        }
+        //if key not lat or lng
+        if (key.endsWith("longitude")) {
+          let census_block_id = key.slice(0,-10)
+          // if not yet defined, set to empty object
+          tempKeys[census_block_id] = tempKeys[census_block_id] || {}
+          tempKeys[census_block_id]['lng'] = value
+        } else if (key.endsWith("latitude")) {
+          let census_block_id = key.slice(0,-9)
+          tempKeys[census_block_id] = tempKeys[census_block_id] || {}
+          tempKeys[census_block_id]['lat'] = value
+        } else {
+          tempKeys[key] = tempKeys[key] || {}
+          tempKeys[key]['mean_visits'] = value
+        }
+      }
+      // prepare data to be plotted
+      for(const [key, value] of Object.entries(tempKeys)) {
+        arcData.push({ 
+          source: [value['lng'], value['lat']], 
+          target: [data.parkLng, data.parkLat], 
+          visits: value['mean_visits'],
+          cb_id: key 
+        });
+      }
+      console.log('updating arcLayer props')
+      console.log(arcData)
+      this.arcLayer.setProps({data: arcData})
+    }
+
+    // update arc layer visibility if button is changed
+    if (data.showArcsMode !== prevProps.showArcsMode) {
+      if(data.showArcsMode === "off") {
+        this.arcLayer.setProps({visible: false})
+      } else if (data.showArcsMode === "postcovid" || data.showArcsMode === "both") {
+        this.arcLayer.setProps({visible: true})
+      }
+    }
+    
   }
 
 
   // Generate the map component for the dashboard
   render() {
-    const { lng, lat, zoom } = this.state;
+    const { zoom } = this.state;
+    //console.log(this.state.arcHoverInfo)
     return (
       <div>
         <div className="sidebar">
-            Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+            Longitude: {this.props.parkLng} | Latitude: {this.props.parkLat} | Zoom: {zoom} 
         </div>
+        {this.state.arcHoverInfo && this.state.arcHoverInfo.object && <div style={{
+          backgroundColor: '#ffffff', padding: "5px",
+          position: 'absolute', 
+          zIndex: 1, 
+          pointerEvents: 'none', 
+          left: this.state.arcHoverInfo.x, 
+          top: this.state.arcHoverInfo.y+10}}>
+            <h4>{this.state.arcHoverInfo.object.visits}</h4> mean monthly visitors, post-Covid (from census-block with ID: {this.state.arcHoverInfo.object.cb_id})
+        </div>}
         <nav id="menu"><h3 style={{borderStyle: 'solid', borderWidth: '1px', textAlign: 'center', padding:'5px'}}>Filter by type</h3></nav>
         <div
           ref={this.mapContainer}

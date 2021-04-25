@@ -22,47 +22,9 @@ class App extends React.Component {
       selectedParkId: null,
       selectedParkName: "select a park",
       chartMode: "line",
-      parkVisitations:  {
-        "safegraph_place_id": "sg:000024a5035444a2aa1ae7594937e4fc",
-        "2018-01-01": 33,
-        "2018-02-01": 33,
-        "2018-03-01": 56,
-        "2018-04-01": 35,
-        "2018-05-01": 49,
-        "2018-06-01": 73,
-        "2018-07-01": 117,
-        "2018-08-01": 87,
-        "2018-09-01": 70,
-        "2018-10-01": 74,
-        "2018-11-01": 52,
-        "2018-12-01": 14,
-        "2019-01-01": 26,
-        "2019-02-01": 25,
-        "2019-03-01": 33,
-        "2019-04-01": 48,
-        "2019-05-01": 109,
-        "2019-06-01": 66,
-        "2019-07-01": 100,
-        "2019-08-01": 68,
-        "2019-09-01": 68,
-        "2019-10-01": 55,
-        "2019-11-01": 48,
-        "2019-12-01": 45,
-        "2020-01-01": 43,
-        "2020-02-01": 34,
-        "2020-03-01": 51,
-        "2020-04-01": 69,
-        "2020-05-01": 96,
-        "2020-06-01": 123,
-        "2020-07-01": 109,
-        "2020-08-01": 81,
-        "2020-09-01": 83,
-        "2020-10-01": 62,
-        "2020-11-01": 43,
-        "2020-12-01": 56,
-        "2021-01-01": 11,
-        "2021-02-01": 10
-       }
+      showArcsMode: "postcovid",
+      parkVisitations:  {},
+      originCovidCensus: {}
     };
     this.poi_database = new Fuse(require("./data/park_pois.json"), {
       keys: ['safegraph_place_id'],
@@ -74,6 +36,11 @@ class App extends React.Component {
       { name: 'Line', value: 'line' },
       { name: 'Overlay', value: 'overlay' },
       { name: 'VisitorOrigin', value: 'origin' },
+    ];
+    this.radiosArcSettings = [
+      { name: 'Off', value: 'off' },
+      //{ name: 'Pre-Covid', value: 'precovid' },
+      { name: 'On', value: 'postcovid' }
     ];
   }
 
@@ -89,6 +56,19 @@ class App extends React.Component {
       })
   }
 
+  getOriginCovidData = (id) => {
+    axios.get(`/origincovid/${id}`)
+      .then((response) => {
+        const data = response.data
+        console.log('Origin data (covid) received')
+        console.log(data)
+        this.setState({ originCovidCensus: data})
+      })
+      .catch(() => {
+        console.log('Error retrieving origin (covid-era) data')
+      })
+  }
+
   // Function for setting search parameters
   setSearch = (params) => {
     let newParams = {};
@@ -97,6 +77,7 @@ class App extends React.Component {
       console.log('New park id received')
       newParams['selectedParkId'] = params.selectedParkId
       // get visitations data for selected park
+      this.getOriginCovidData(params.selectedParkId)
       this.getVisitationsData(params.selectedParkId)
     }
     // in case park visitations is passed directly to setSearch
@@ -153,10 +134,30 @@ class App extends React.Component {
                 </TabPanel>    
               </Tabs>
             </Row>
-            <Row xs={4} style={{'padding': '10px', margin:"10px 0px"}} className="justify-content-md-left">
+            <Row xs={4} style={{'padding': '5px', margin:"10px 0px 0px 0px"}} className="justify-content-md-left">
+              <h4>Visitor-origin arc setting:</h4>
+              <Col>
+                <ButtonGroup toggle style={{'width': '100%'}}>
+                  {this.radiosArcSettings.map((radio, idx) => (
+                    <ToggleButton size="lg"
+                      key={idx}
+                      type="radio"
+                      variant="primary"
+                      name="radio"
+                      value={radio.value}
+                      checked={this.state.showArcsMode === radio.value}
+                      onChange={(e) => this.setState({showArcsMode: e.currentTarget.value})}
+                    >
+                      {radio.name}
+                    </ToggleButton>
+                  ))}
+                </ButtonGroup>
+              </Col>
+            </Row>
+            <Row xs={4} style={{'padding': '5px', margin:"0px 0px 10px 0px"}} className="justify-content-md-left">
               <h4>Chart type:</h4>
               <Col>
-                <ButtonGroup toggle>
+                <ButtonGroup toggle >
                   {this.radios.map((radio, idx) => (
                     <ToggleButton size="lg"
                       key={idx}
@@ -179,7 +180,7 @@ class App extends React.Component {
           </Col>
           <Col xs={12} sm={7} md={8} lg={9} style={{ 'marginBottom': '40px'}}>
             {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
-            <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} setSearch={this.setSearch}/>
+            <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} originCovidData={this.state.originCovidCensus} showArcsMode={this.state.showArcsMode} setSearch={this.setSearch}/>
           </Col>
         </Row>
       </Container>
