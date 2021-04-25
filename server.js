@@ -18,8 +18,10 @@ connection.once('open', () => {
 })
 
 const visitationsRouter = require('./routes/visitations')
+const originCovidRouter = require('./routes/origin_covid')
 
 app.use('/visitations', visitationsRouter)
+app.use('/origincovid', originCovidRouter)
 
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static('dashboard/build'))
