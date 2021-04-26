@@ -43,6 +43,13 @@ body,
   border-radius: 4px;
   }
 
+.icon {
+  display: block;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  }
+
 .legend {
   background-color: rgba(255,255,255,0.8);
   border-radius: 3px;
@@ -111,7 +118,7 @@ body,
   width: 120px;
   border: 1px solid rgba(0, 0, 0, 0.4);
   }
-  
+
   #menu a {
   font-size: 16px;
   color: #404040;
@@ -122,21 +129,21 @@ body,
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
   text-align: center;
   }
-  
+
   #menu a:last-child {
   border: none;
   }
-  
+
   #menu a:hover {
   background-color: #e2e2e2c7;
   color: #404040;
   }
-  
+
   #menu a.active {
   background-color: #3887be;
   color: #ffffff;
   }
-  
+
   #menu a.active:hover {
   background: #3074a4;
   }

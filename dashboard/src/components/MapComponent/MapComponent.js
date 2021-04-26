@@ -91,6 +91,13 @@ class MapComponent extends React.PureComponent {
         data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/dashboard/src/data/county_change.geojson'
       });
 
+      map.loadImage('https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Map_icons_by_Scott_de_Jonge_-_city-hall.svg/1200px-Map_icons_by_Scott_de_Jonge_-_city-hall.svg.png',
+        function(error, image) {
+        if (error) throw error;
+        map.addImage('cat', image); // 38x55px, shadow adds 5px (for scale eq 1)
+      });
+
+
       map.addLayer(this.arcLayer)
 
       // add layer of parks with percent-change data
@@ -319,6 +326,22 @@ class MapComponent extends React.PureComponent {
         }
       });
 
+      map.addLayer({
+        'id': 'icon',
+        'type': 'symbol',
+        'source': 'county_parks', // reference the data source
+        'minzoom': 4,
+        'layout': {
+          'icon-image': 'cat', // reference the image
+          'icon-size': 0.015,
+          'icon-anchor': 'bottom',
+          'icon-offset': [0, 5],
+          'icon-allow-overlap': true,
+          'icon-rotate': 180,
+          'visibility': 'none'
+        }
+      });
+
 
       map.addLayer({
         'id': 'County-labels',
@@ -397,6 +420,7 @@ class MapComponent extends React.PureComponent {
                 map.setLayoutProperty('State', 'visibility', 'none');
                 map.setLayoutProperty('State-labels', 'visibility', 'none');
                 map.setLayoutProperty('County', 'visibility', 'none');
+                map.setLayoutProperty('icon', 'visibility', 'none');
                 map.setLayoutProperty('County-labels', 'visibility', 'none');
             }
         }
@@ -426,6 +450,7 @@ class MapComponent extends React.PureComponent {
                 map.setLayoutProperty('All', 'visibility', 'none');
                 map.setLayoutProperty('All-labels', 'visibility', 'none');
                 map.setLayoutProperty('County', 'visibility', 'none');
+                map.setLayoutProperty('icon', 'visibility', 'none');
                 map.setLayoutProperty('County-labels', 'visibility', 'none');
             }
         }
@@ -453,6 +478,7 @@ class MapComponent extends React.PureComponent {
                 map.setLayoutProperty('All', 'visibility', 'none');
                 map.setLayoutProperty('All-labels', 'visibility', 'none');
                 map.setLayoutProperty('County', 'visibility', 'none');
+                map.setLayoutProperty('icon', 'visibility', 'none');
                 map.setLayoutProperty('County-labels', 'visibility', 'none');
             }
         }
@@ -464,6 +490,7 @@ class MapComponent extends React.PureComponent {
 
         var layers4 = [];
 
+        layers4.push('icon');
         layers4.push('County');
         layers4.push('County-labels');
 
