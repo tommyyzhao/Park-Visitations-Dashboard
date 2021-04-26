@@ -303,8 +303,8 @@ class MapComponent extends React.PureComponent {
               10000,32
             ],
           'circle-blur': 0.2,
-          'circle-stroke-width': 0.1,
-          'circle-stroke-color': '#000000',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#Af5d04',
           'circle-color': [
             'interpolate',
             ['linear'],
@@ -504,7 +504,7 @@ class MapComponent extends React.PureComponent {
       this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
     });
 
-    map.on('click', 'National', (e) => {      
+    map.on('click', 'National', (e) => {
       this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
     });
 
@@ -655,7 +655,7 @@ class MapComponent extends React.PureComponent {
         zoom: 14
       })
     }
-    
+
     // updated arc layer if origin Data is updated
     if (!data.originCovidData || !data.originCovidData.safegraph_place_id) {
       //console.log("no originCovidData")
@@ -688,11 +688,11 @@ class MapComponent extends React.PureComponent {
       }
       // prepare data to be plotted
       for(const [key, value] of Object.entries(tempKeys)) {
-        arcData.push({ 
-          source: [value['lng'], value['lat']], 
-          target: [data.parkLng, data.parkLat], 
+        arcData.push({
+          source: [value['lng'], value['lat']],
+          target: [data.parkLng, data.parkLat],
           visits: value['mean_visits'],
-          cb_id: key 
+          cb_id: key
         });
       }
       console.log('updating arcLayer props')
@@ -708,7 +708,7 @@ class MapComponent extends React.PureComponent {
         this.arcLayer.setProps({visible: true})
       }
     }
-    
+
   }
 
 
@@ -719,14 +719,14 @@ class MapComponent extends React.PureComponent {
     return (
       <div>
         <div className="sidebar">
-            Longitude: {this.props.parkLng} | Latitude: {this.props.parkLat} | Zoom: {zoom} 
+            Longitude: {this.props.parkLng} | Latitude: {this.props.parkLat} | Zoom: {zoom}
         </div>
         {this.state.arcHoverInfo && this.state.arcHoverInfo.object && <div style={{
           backgroundColor: '#ffffff', padding: "5px",
-          position: 'absolute', 
-          zIndex: 1, 
-          pointerEvents: 'none', 
-          left: this.state.arcHoverInfo.x, 
+          position: 'absolute',
+          zIndex: 1,
+          pointerEvents: 'none',
+          left: this.state.arcHoverInfo.x,
           top: this.state.arcHoverInfo.y+10}}>
             <h4>{this.state.arcHoverInfo.object.visits}</h4> mean monthly visitors, post-Covid (from census-block with ID: {this.state.arcHoverInfo.object.cb_id})
         </div>}
