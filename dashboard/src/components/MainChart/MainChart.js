@@ -121,8 +121,10 @@ class MainChart extends React.PureComponent {
     }
     if (!this.props.parkData || Object.keys(this.props.parkData).length === 0) {
       console.log("parkData is empty")
+      this.chartOverlay.data = [];
+      this.chartLine.data = [];
       return //do nothing if props didn't change
-    } else if (prevProps.parkData.safegraph_place_id && this.props.parkData.safegraph_place_id === prevProps.parkData.safegraph_place_id) {
+    } else if (prevProps.parkData && prevProps.parkData.safegraph_place_id && this.props.parkData.safegraph_place_id === prevProps.parkData.safegraph_place_id) {
       console.log("parkData has same id as prevProps")
       return
     } else {
@@ -178,6 +180,7 @@ class MainChart extends React.PureComponent {
       this.chartLine.data = data;
       
     }
+    
   }
 
   render() {

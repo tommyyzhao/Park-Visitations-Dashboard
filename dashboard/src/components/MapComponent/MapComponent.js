@@ -682,12 +682,23 @@ class MapComponent extends React.PureComponent {
         zoom: 14
       })
     }
+    
+    // update arc layer visibility if button is changed
+    if (data.showArcsMode !== prevProps.showArcsMode) {
+      if(data.showArcsMode === "off") {
+        this.arcLayer.setProps({visible: false})
+      } else if (data.showArcsMode === "postcovid" || data.showArcsMode === "both") {
+        this.arcLayer.setProps({visible: true})
+      }
+    }
 
     // updated arc layer if origin Data is updated
     if (!data.originCovidData || !data.originCovidData.safegraph_place_id) {
       //console.log("no originCovidData")
+      return
     } else if (prevProps.originCovidData && prevProps.originCovidData.safegraph_place_id && data.originCovidData.safegraph_place_id === prevProps.originCovidData.safegraph_place_id) {
-      console.log("originCovid data unchanged")
+      //console.log("originCovid data unchanged")
+      return
     } else {
       let arcData = []
       let tempKeys = {} //temp var to parse data by keys
@@ -725,15 +736,6 @@ class MapComponent extends React.PureComponent {
       console.log('updating arcLayer props')
       console.log(arcData)
       this.arcLayer.setProps({data: arcData})
-    }
-
-    // update arc layer visibility if button is changed
-    if (data.showArcsMode !== prevProps.showArcsMode) {
-      if(data.showArcsMode === "off") {
-        this.arcLayer.setProps({visible: false})
-      } else if (data.showArcsMode === "postcovid" || data.showArcsMode === "both") {
-        this.arcLayer.setProps({visible: true})
-      }
     }
 
   }

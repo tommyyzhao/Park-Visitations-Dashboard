@@ -92,9 +92,8 @@ class App extends React.Component {
     // load POI info for park
     // if parkId is -1 then that means a county is selected so don't query mongo
     if (this.state.selectedParkId !== prevState.selectedParkId || !this.state.selectedParkId === -1) {
-      console.log("Park id (state) changed, searching for park's POI info:")
+    //console.log("Park id (state) changed, searching for park's POI info:")
       let park_info = this.poi_database.search(this.state.selectedParkId)[0].item
-      console.log(park_info)
       this.setState({
         parkLng: park_info.longitude,
         parkLat:park_info.latitude,
