@@ -57,6 +57,19 @@ class MapComponent extends React.PureComponent {
         onHover: info => this.setState({arcHoverInfo: info}),
         visible: true
       })
+      this.arcLayerPreCovid = new MapboxLayer({
+        id: 'deckgl-arc-precovid',
+        type: ArcLayer,
+        data: [],
+        getSourcePosition: d => d.source,
+        getTargetPosition: d => d.target,
+        getSourceColor: [159, 133, 201],
+        getTargetColor: [132, 94, 194],
+        getWidth: d => Math.sqrt(d.visits),
+        pickable: true,
+        onHover: info => this.setState({arcHoverInfo: info}),
+        visible: false
+      })
   }
 
   componentDidMount() {
@@ -99,6 +112,7 @@ class MapComponent extends React.PureComponent {
 
 
       map.addLayer(this.arcLayer)
+      map.addLayer(this.arcLayerPreCovid)
 
       // add layer of parks with percent-change data
       map.addLayer({
@@ -687,18 +701,24 @@ class MapComponent extends React.PureComponent {
     if (data.showArcsMode !== prevProps.showArcsMode) {
       if(data.showArcsMode === "off") {
         this.arcLayer.setProps({visible: false})
-      } else if (data.showArcsMode === "postcovid" || data.showArcsMode === "both") {
+        this.arcLayerPreCovid.setProps({visible: false})
+      } else if (data.showArcsMode === "postcovid") {
         this.arcLayer.setProps({visible: true})
+        this.arcLayerPreCovid.setProps({visible: false})
+      }else if (data.showArcsMode === "precovid") {
+        this.arcLayer.setProps({visible: false})
+        this.arcLayerPreCovid.setProps({visible: true})
+      } else if (data.showArcsMode === "both") {
+        this.arcLayer.setProps({visible: true})
+        this.arcLayerPreCovid.setProps({visible: true})
       }
     }
 
     // updated arc layer if origin Data is updated
     if (!data.originCovidData || !data.originCovidData.safegraph_place_id) {
       //console.log("no originCovidData")
-      return
     } else if (prevProps.originCovidData && prevProps.originCovidData.safegraph_place_id && data.originCovidData.safegraph_place_id === prevProps.originCovidData.safegraph_place_id) {
       //console.log("originCovid data unchanged")
-      return
     } else {
       let arcData = []
       let tempKeys = {} //temp var to parse data by keys
@@ -738,6 +758,50 @@ class MapComponent extends React.PureComponent {
       this.arcLayer.setProps({data: arcData})
     }
 
+    // PRE COVID updated arc layer if origin Data is updated
+    if (!data.originPreCovidData || !data.originPreCovidData.safegraph_place_id) {
+      console.log("no originPreCovidData")
+    } else if (prevProps.originPreCovidData && prevProps.originPreCovidData.safegraph_place_id && data.originPreCovidData.safegraph_place_id === prevProps.originPreCovidData.safegraph_place_id) {
+      console.log("originPreCovid data unchanged")
+    } else {
+      let arcData = []
+      let tempKeys = {} //temp var to parse data by keys
+
+      // due to our data schema we must first group by census block
+      for (const [key, value] of Object.entries(data.originPreCovidData)) {
+        // skip invalid keys
+        if (key === "_id" || key === "safegraph_place_id") {
+          continue
+        }
+        //if key not lat or lng
+        if (key.endsWith("longitude")) {
+          let census_block_id = key.slice(0,-10)
+          // if not yet defined, set to empty object
+          tempKeys[census_block_id] = tempKeys[census_block_id] || {}
+          tempKeys[census_block_id]['lng'] = value
+        } else if (key.endsWith("latitude")) {
+          let census_block_id = key.slice(0,-9)
+          tempKeys[census_block_id] = tempKeys[census_block_id] || {}
+          tempKeys[census_block_id]['lat'] = value
+        } else {
+          tempKeys[key] = tempKeys[key] || {}
+          tempKeys[key]['mean_visits'] = value
+        }
+      }
+      // prepare data to be plotted
+      for(const [key, value] of Object.entries(tempKeys)) {
+        arcData.push({
+          source: [value['lng'], value['lat']],
+          target: [data.parkLng, data.parkLat],
+          visits: value['mean_visits'],
+          cb_id: key
+        });
+      }
+      console.log('updating arcLayerPreCovid props')
+      console.log(arcData)
+      this.arcLayerPreCovid.setProps({data: arcData})
+    }
+
   }
 
 
@@ -757,7 +821,7 @@ class MapComponent extends React.PureComponent {
           pointerEvents: 'none',
           left: this.state.arcHoverInfo.x,
           top: this.state.arcHoverInfo.y+10}}>
-            <h4>{this.state.arcHoverInfo.object.visits}</h4> mean monthly visitors, post-Covid (from census-block with ID: {this.state.arcHoverInfo.object.cb_id})
+            <h4>{this.state.arcHoverInfo.object.visits}</h4> mean monthly visitations, post-Covid (from census-block with ID: {this.state.arcHoverInfo.object.cb_id})
         </div>}
         <nav id="menu"><h3 style={{borderStyle: 'solid', borderWidth: '1px', textAlign: 'center', padding:'5px'}}>Filter by type</h3></nav>
         <div

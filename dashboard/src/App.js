@@ -22,9 +22,10 @@ class App extends React.Component {
       selectedParkId: null,
       selectedParkName: "select a park",
       chartMode: "line",
-      showArcsMode: "postcovid",
+      showArcsMode: "off",
       parkVisitations:  {},
-      originCovidCensus: {}
+      originCovidCensus: {},
+      originPreCovidCensus: {}
     };
     this.poi_database = new Fuse(require("./data/park_pois.json"), {
       keys: ['safegraph_place_id'],
@@ -35,12 +36,12 @@ class App extends React.Component {
     this.radios = [
       { name: 'Line', value: 'line' },
       { name: 'Overlay', value: 'overlay' },
-      { name: 'VisitorOrigin', value: 'origin' },
     ];
     this.radiosArcSettings = [
       { name: 'Off', value: 'off' },
-      //{ name: 'Pre-Covid', value: 'precovid' },
-      { name: 'On', value: 'postcovid' }
+      { name: 'PreCovid', value: 'precovid' },
+      { name: 'PostCovid', value: 'postcovid' },
+      { name: 'Both', value: 'both' },
     ];
   }
 
@@ -48,7 +49,6 @@ class App extends React.Component {
     axios.get(`/visitations/${id}`)
       .then((response) => {
         const data = response.data
-        console.log('Visitation data received')
         this.setState({ parkVisitations: data})
       })
       .catch(() => {
@@ -60,9 +60,20 @@ class App extends React.Component {
     axios.get(`/origincovid/${id}`)
       .then((response) => {
         const data = response.data
-        console.log('Origin data (covid) received')
-        console.log(data)
         this.setState({ originCovidCensus: data})
+      })
+      .catch(() => {
+        console.log('Error retrieving origin (covid-era) data')
+      })
+  }
+
+  getOriginPreCovidData = (id) => {
+    axios.get(`/originprecovid/${id}`)
+      .then((response) => {
+        const data = response.data
+        console.log('Origin data (pre-Covid) received')
+        console.log(data)
+        this.setState({ originPreCovidCensus: data})
       })
       .catch(() => {
         console.log('Error retrieving origin (covid-era) data')
@@ -78,6 +89,7 @@ class App extends React.Component {
       newParams['selectedParkId'] = params.selectedParkId
       // get visitations data for selected park
       this.getOriginCovidData(params.selectedParkId)
+      this.getOriginPreCovidData(params.selectedParkId)
       this.getVisitationsData(params.selectedParkId)
     }
     // in case park visitations is passed directly to setSearch
@@ -133,10 +145,12 @@ class App extends React.Component {
                 </TabPanel>    
               </Tabs>
             </Row>
-            <Row xs={4} style={{'padding': '5px', margin:"10px 0px 0px 0px"}} className="justify-content-md-left">
+            <Row xs={1} style={{'padding': '0px', margin:"10px 0px 0px 0px"}} className="justify-content-md-left">
               <h4>Visitor-origin arc setting:</h4>
+            </Row>
+            <Row xs={4} style={{'padding': '5px', margin:"0px 0px 0px 0px"}} className="justify-content-md-left">
               <Col>
-                <ButtonGroup toggle style={{'width': '100%'}}>
+                <ButtonGroup toggle >
                   {this.radiosArcSettings.map((radio, idx) => (
                     <ToggleButton size="lg"
                       key={idx}
@@ -146,6 +160,7 @@ class App extends React.Component {
                       value={radio.value}
                       checked={this.state.showArcsMode === radio.value}
                       onChange={(e) => this.setState({showArcsMode: e.currentTarget.value})}
+                      style={{'width': '100%'}}
                     >
                       {radio.name}
                     </ToggleButton>
@@ -179,7 +194,12 @@ class App extends React.Component {
           </Col>
           <Col xs={12} sm={7} md={8} lg={9} style={{ 'marginBottom': '40px'}}>
             {this.state && this.state.selectedParkId && <div className="sidebar-selected">Selected park: {this.state.selectedParkName}</div>}
-            <MapComponent parkLng={this.state.parkLng} parkLat={this.state.parkLat} originCovidData={this.state.originCovidCensus} showArcsMode={this.state.showArcsMode} setSearch={this.setSearch}/>
+            <MapComponent parkLng={this.state.parkLng} 
+              parkLat={this.state.parkLat}
+              originCovidData={this.state.originCovidCensus} 
+              originPreCovidData={this.state.originPreCovidCensus} 
+              showArcsMode={this.state.showArcsMode} 
+              setSearch={this.setSearch}/>
           </Col>
         </Row>
       </Container>
