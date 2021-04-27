@@ -107,7 +107,7 @@ class MapComponent extends React.PureComponent {
       map.loadImage('https://image.flaticon.com/icons/png/128/3448/3448536.png',
         function(error, image) {
         if (error) throw error;
-        map.addImage('cat', image, {width: 50, height: 50} ); // 38x55px, shadow adds 5px (for scale eq 1)
+        map.addImage('county', image, {width: 50, height: 50} ); // 38x55px, shadow adds 5px (for scale eq 1)
       });
 
 
@@ -346,12 +346,11 @@ class MapComponent extends React.PureComponent {
         'source': 'county_parks', // reference the data source
         'minzoom': 4,
         'layout': {
-          'icon-image': 'cat', // reference the image
-          'icon-size': 0.015,
+          'icon-image': 'county', // reference the image
+          'icon-size': 0.2,
           'icon-anchor': 'bottom',
           'icon-offset': [0, 5],
           'icon-allow-overlap': true,
-          'icon-rotate': 180,
           'visibility': 'none'
         }
       });
@@ -696,7 +695,7 @@ class MapComponent extends React.PureComponent {
         zoom: 14
       })
     }
-    
+
     // update arc layer visibility if button is changed
     if (data.showArcsMode !== prevProps.showArcsMode) {
       if(data.showArcsMode === "off") {
