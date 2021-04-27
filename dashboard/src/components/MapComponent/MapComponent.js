@@ -104,10 +104,10 @@ class MapComponent extends React.PureComponent {
         data: 'https://raw.githubusercontent.com/ztoms/Park-Visitations-Dashboard/main/dashboard/src/data/county_change.geojson'
       });
 
-      map.loadImage('https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Map_icons_by_Scott_de_Jonge_-_city-hall.svg/1200px-Map_icons_by_Scott_de_Jonge_-_city-hall.svg.png',
+      map.loadImage('https://image.flaticon.com/icons/png/128/3448/3448536.png',
         function(error, image) {
         if (error) throw error;
-        map.addImage('cat', image); // 38x55px, shadow adds 5px (for scale eq 1)
+        map.addImage('cat', image, {width: 50, height: 50} ); // 38x55px, shadow adds 5px (for scale eq 1)
       });
 
 
@@ -760,9 +760,9 @@ class MapComponent extends React.PureComponent {
 
     // PRE COVID updated arc layer if origin Data is updated
     if (!data.originPreCovidData || !data.originPreCovidData.safegraph_place_id) {
-      console.log("no originPreCovidData")
+      //console.log("no originPreCovidData")
     } else if (prevProps.originPreCovidData && prevProps.originPreCovidData.safegraph_place_id && data.originPreCovidData.safegraph_place_id === prevProps.originPreCovidData.safegraph_place_id) {
-      console.log("originPreCovid data unchanged")
+      //console.log("originPreCovid data unchanged")
     } else {
       let arcData = []
       let tempKeys = {} //temp var to parse data by keys
@@ -797,8 +797,8 @@ class MapComponent extends React.PureComponent {
           cb_id: key
         });
       }
-      console.log('updating arcLayerPreCovid props')
-      console.log(arcData)
+      //console.log('updating arcLayerPreCovid props')
+      //console.log(arcData)
       this.arcLayerPreCovid.setProps({data: arcData})
     }
 
