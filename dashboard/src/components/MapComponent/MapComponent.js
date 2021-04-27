@@ -55,7 +55,7 @@ class MapComponent extends React.PureComponent {
         getWidth: d => Math.sqrt(d.visits),
         pickable: true,
         onHover: info => this.setState({arcHoverInfo: info}),
-        visible: true
+        visible: false
       })
       this.arcLayerPreCovid = new MapboxLayer({
         id: 'deckgl-arc-precovid',
