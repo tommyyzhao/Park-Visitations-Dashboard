@@ -9,7 +9,6 @@ am4core.useTheme(am4themes_material);
 
  const covid_start = new Date("2/28/2020");
 
-// Adapted from https://www.amcharts.com/docs/v4/getting-started/integrations/using-react/
 class MainChart extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -20,7 +19,7 @@ class MainChart extends React.PureComponent {
     };
   }
 
-  // Adapted from https://www.amcharts.com/docs/v4/getting-started/integrations/using-react/
+  // Using AmCharts 4 (https://www.amcharts.com/docs/v4/getting-started/integrations/using-react/)
   // initialize charts
   componentDidMount() {
     // initialize overlayChart
@@ -71,8 +70,7 @@ class MainChart extends React.PureComponent {
 
     this.chartOverlay = chartOverlay;
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // Adapted from https://www.amcharts.com/docs/v4/getting-started/integrations/using-react/
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
     // Initialize Line chart
     let chartLine = am4core.create("chartdiv-line", am4charts.XYChart);
 

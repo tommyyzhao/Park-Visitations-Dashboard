@@ -43,7 +43,7 @@ class MapComponent extends React.PureComponent {
       "60710015011_longitude":-117.6392854,
       "60710015011_latitude":34.067719700000005}
       this.arcData = []
-      // Adapted from https://deck.gl/docs/api-reference/layers/arc-layer
+      // Initializing arcLayer from deck.gl (https://deck.gl/docs/api-reference/layers/arc-layer)
       this.arcLayer = new MapboxLayer({
         id: 'deckgl-arc',
         type: ArcLayer,
@@ -122,7 +122,7 @@ class MapComponent extends React.PureComponent {
         type: 'circle',
         source: 'all_parks',
         filter: ['!=', 'percent_change', ""],
-        minzoom: 8,
+        minzoom: 7,
         paint: {
           'circle-radius': [
               'interpolate',
@@ -157,7 +157,7 @@ class MapComponent extends React.PureComponent {
         'type': 'symbol',
         'source': 'all_parks',
         'filter': ['!=', 'percent_change', ""],
-        'minzoom': 8,
+        'minzoom': 11,
         'layout': {
           'text-field': ['get', 'location'],
           'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
@@ -386,7 +386,6 @@ class MapComponent extends React.PureComponent {
       });
     });
 
-    // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
     // Create toggleboxes to filter for different types of parks with a click event
     var id = "All";
     var id2 = "National"
@@ -688,7 +687,6 @@ class MapComponent extends React.PureComponent {
 
   }
 
-  // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
   componentDidUpdate(prevProps) {
     const data  = this.props
 
