@@ -3,7 +3,6 @@ import mapboxgl from "mapbox-gl"
 //import { timeUnitDurations } from "@amcharts/amcharts4/.internal/core/utils/Time";
 import { MapboxLayer } from '@deck.gl/mapbox'
 import {ArcLayer} from '@deck.gl/layers'
-//import {ScatterplotLayer} from '@deck.gl/layers';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 mapboxgl.workerClass = require('worker-loader!mapbox-gl/dist/mapbox-gl-csp-worker').default;
@@ -11,7 +10,7 @@ mapboxgl.workerClass = require('worker-loader!mapbox-gl/dist/mapbox-gl-csp-worke
 mapboxgl.accessToken =
 'pk.eyJ1IjoienRvbXMiLCJhIjoiY2tucTQ5ajhiMGE1dDJxcXZueTg4eTVrNiJ9.ChK9cBOSuoX-v1thHfM43A';
 
-
+// Adapted from https://reactjs.org/docs/react-component.html
 class MapComponent extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -44,6 +43,7 @@ class MapComponent extends React.PureComponent {
       "60710015011_longitude":-117.6392854,
       "60710015011_latitude":34.067719700000005}
       this.arcData = []
+      // Adapted from https://deck.gl/docs/api-reference/layers/arc-layer
       this.arcLayer = new MapboxLayer({
         id: 'deckgl-arc',
         type: ArcLayer,
@@ -92,6 +92,7 @@ class MapComponent extends React.PureComponent {
         zoom: map.getZoom().toFixed(2)})
       });
 
+    // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
     map.on("load", () => {
 
       map.addSource('all_parks', {
@@ -114,6 +115,7 @@ class MapComponent extends React.PureComponent {
       map.addLayer(this.arcLayer)
       map.addLayer(this.arcLayerPreCovid)
 
+      // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
       // add layer of parks with percent-change data
       map.addLayer({
         id: 'All',
@@ -384,6 +386,7 @@ class MapComponent extends React.PureComponent {
       });
     });
 
+    // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
     // Create toggleboxes to filter for different types of parks with a click event
     var id = "All";
     var id2 = "National"
@@ -538,7 +541,7 @@ class MapComponent extends React.PureComponent {
     var legend = document.getElementById('color-legend');
     legend.style.display = 'block'
 
-
+    // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
     // Set up an event listener on the map.
     map.on('click', 'All', (e) => {
       this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
@@ -552,12 +555,14 @@ class MapComponent extends React.PureComponent {
       this.props.setSearch({ selectedParkId: e.features[0].properties.safegraph_place_id })
     });
 
+    // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
     // Create a popup, but don't add it to the map yet.
     var popup = new mapboxgl.Popup({
       closeButton: false,
       closeOnClick: false
     });
 
+    // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
     // Create a mouse over event for the tooltip
     map.on('mouseenter', 'All', function (e) {
       map.getCanvas().style.cursor = 'pointer';
@@ -683,6 +688,7 @@ class MapComponent extends React.PureComponent {
 
   }
 
+  // Adapted from https://docs.mapbox.com/mapbox-gl-js/api/map/
   componentDidUpdate(prevProps) {
     const data  = this.props
 
