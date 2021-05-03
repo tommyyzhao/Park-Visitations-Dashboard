@@ -129,10 +129,10 @@ class MapComponent extends React.PureComponent {
               ['linear'],
               ['get', 'visitor_counts_postcovid'],
               1,3,
-              10,6,
-              100,12,
-              1000,24,
-              10000,32
+              10,4,
+              100,5,
+              1000,6,
+              10000,8
             ],
           'circle-blur': 0.2,
           'circle-stroke-width': 0.1,
@@ -173,7 +173,7 @@ class MapComponent extends React.PureComponent {
                   [7, 0],
                   [8, 0],
                   [10, 0],
-                  [12, 12],
+                  [12, 10],
               ]
           },
           "visibility": "none",
@@ -319,7 +319,7 @@ class MapComponent extends React.PureComponent {
               'interpolate',
               ['linear'],
               ['get', 'visitor_counts_postcovid'],
-              1,3,
+              1,2,
               10,6,
               100,12,
               1000,24,
