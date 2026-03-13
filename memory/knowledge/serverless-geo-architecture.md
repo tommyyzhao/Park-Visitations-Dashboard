@@ -21,3 +21,5 @@ Replacing the traditional MERN stack (MongoDB + Express + React + Mapbox) for an
 ## Gotchas
 - **File Limits**: Production Vite builds heavily limit file chunk sizes. Code-splitting MapLibre and DuckDB binaries is often required.
 - **DuckDB Typing**: Watch out for implicit JSON casts on text fields in Parquet resulting from mixed JSON schemas. Cast fields to `VARCHAR` in SQL queries.
+- **Popup XSS Injections**: DuckDB and MapLibre inherently decouple data models from front-end safety. Data parsed from unstructured `.parquet` files and displayed via `.setHTML()` natively opens dangerous XSS vectors. Hand-built string escapers are mandatory prior to template insertion.
+- **Map Instance Re-renders (React)**: React components instantiating imperative classes (`new maplibregl.Map()`) will break if passed un-memoized nested arrays or objects. Event parameters (like coordinates) bound to `useEffect` arrays must be strictly memoized using `useMemo` to prevent infinite imperative map transitions on benign re-renders (like user typing).

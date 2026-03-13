@@ -11,3 +11,11 @@
 ## 3. Handling Unavailability of Data
 - **Axiom**: When external data sources die or are put behind enterprise payloads (e.g. SafeGraph, Foursquare), and the explicit goal is a visually impressive "demo" or "rebuild", synthetic data generation is a valid protocol.
 - **Resolution**: Utilize seeded PRNGs (Pseudo-Random Number Generators) bound to unique IDs (like place_ids) to synthesize deterministic, reproducible, and realistic data distributions for demonstration purposes when exact historical data is unavailable.
+
+## 4. UI/Security in Map Rendering
+- **Constraint**: Parquet or PMTile geographic attributes generated from unstructured external JSON are perpetually vulnerable vectors for Cross-Site Scripting (XSS).
+- **Resolution**: Intercept and explicitly HTML-escape all string properties from map geographic features before injecting them into MapLibre popup `.setHTML()` template blocks. Use CSS prefixes like `.maplibregl-` properly to inherit standard DOM themes instead of `.mapboxgl-`.
+
+## 5. React Lifecycle Integration with WebGL Maps
+- **Constraint**: WebGL bridges like MapLibre and visualization libraries like Recharts are profoundly sensitive to changing object references in functional React components.
+- **Resolution**: Strictly `useMemo` complex coordinate arrays or filtered metrics. Failure to stabilize arrays fed to map `useEffect` observers causes catastrophic re-renders and infinite `flyTo()` loop cascades. Strip event callbacks from dependency arrays and safely capture them using `useRef` to track state closures.
