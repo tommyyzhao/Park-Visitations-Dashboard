@@ -1,0 +1,336 @@
+import { useEffect, useRef, useState, useCallback } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { Protocol } from 'pmtiles';
+
+let pmtilesInitialized = false;
+
+function escapeHtml(unsafe: string | number | undefined | null) {
+  if (unsafe == null) return '';
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+type LayerFilter = 'all' | 'national' | 'state' | 'county';
+
+interface MapProps {
+  onSelectedLocation?: (properties: any) => void;
+  selectedCoordinates?: [number, number];
+}
+
+export default function InteractiveMap({ onSelectedLocation, selectedCoordinates }: MapProps) {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const activeLocationHandler = useRef(onSelectedLocation);
+  const [activeLayer, setActiveLayer] = useState<LayerFilter>('national');
+  const [zoom, setZoom] = useState(4);
+
+  useEffect(() => {
+    activeLocationHandler.current = onSelectedLocation;
+  }, [onSelectedLocation]);
+
+  const setupLayers = useCallback((map: maplibregl.Map) => {
+    // Add PMTiles sources
+    if (!map.getSource('parks_data')) {
+      map.addSource('parks_data', {
+        type: 'vector',
+        url: 'pmtiles://data/labeled_change.pmtiles'
+      });
+    }
+    if (!map.getSource('county_data')) {
+      map.addSource('county_data', {
+        type: 'vector',
+        url: 'pmtiles://data/county_change.pmtiles'
+      });
+    }
+
+    // All Parks layer
+    map.addLayer({
+      id: 'parks_all',
+      type: 'circle',
+      source: 'parks_data',
+      'source-layer': 'labeled_change',
+      minzoom: 7,
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'visitor_counts_postcovid'],
+          1, 3, 10, 4, 100, 5, 1000, 6, 10000, 8
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'percent_change'],
+          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
+        ],
+        'circle-opacity': 0.85,
+        'circle-stroke-width': 0.5,
+        'circle-stroke-color': '#000'
+      },
+      layout: { 'visibility': 'none' }
+    });
+
+    // National Parks layer
+    map.addLayer({
+      id: 'parks_national',
+      type: 'circle',
+      source: 'parks_data',
+      'source-layer': 'labeled_change',
+      filter: ['==', ['get', 'national'], 1],
+      minzoom: 3,
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'visitor_counts_postcovid'],
+          1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'percent_change'],
+          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
+        ],
+        'circle-opacity': 0.85,
+        'circle-stroke-width': 0.5,
+        'circle-stroke-color': '#000'
+      },
+      layout: { 'visibility': 'visible' }
+    });
+
+    // State Parks layer
+    map.addLayer({
+      id: 'parks_state',
+      type: 'circle',
+      source: 'parks_data',
+      'source-layer': 'labeled_change',
+      filter: ['==', ['get', 'state'], 1],
+      minzoom: 3,
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'visitor_counts_postcovid'],
+          1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'percent_change'],
+          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
+        ],
+        'circle-opacity': 0.85,
+        'circle-stroke-width': 0.5,
+        'circle-stroke-color': '#000'
+      },
+      layout: { 'visibility': 'none' }
+    });
+
+    // County aggregated layer
+    map.addLayer({
+      id: 'parks_county',
+      type: 'circle',
+      source: 'county_data',
+      'source-layer': 'county_change',
+      minzoom: 3,
+      paint: {
+        'circle-radius': [
+          'interpolate', ['linear'], ['get', 'visitor_counts_postcovid'],
+          1, 2, 10, 6, 100, 12, 1000, 24, 10000, 32
+        ],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'percent_change'],
+          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
+        ],
+        'circle-opacity': 0.85,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': '#Af5d04'
+      },
+      layout: { 'visibility': 'none' }
+    });
+
+    // Labels for national parks
+    map.addLayer({
+      id: 'parks_national_labels',
+      type: 'symbol',
+      source: 'parks_data',
+      'source-layer': 'labeled_change',
+      filter: ['==', ['get', 'national'], 1],
+      minzoom: 6,
+      layout: {
+        'text-field': ['get', 'location'],
+        'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+        'text-radial-offset': 0.8,
+        'text-size': 11,
+        'visibility': 'visible'
+      },
+      paint: {
+        'text-color': '#e2e8f0',
+        'text-halo-color': '#0f172a',
+        'text-halo-width': 1.5
+      }
+    });
+
+    // Click handlers for each layer type
+    const clickableLayers = ['parks_all', 'parks_national', 'parks_state', 'parks_county'];
+    clickableLayers.forEach(layerId => {
+      map.on('click', layerId, (e: any) => {
+        if (!e.features || e.features.length === 0) return;
+        const props = e.features[0].properties;
+        if (activeLocationHandler.current) activeLocationHandler.current(props);
+
+        const name = escapeHtml(props.location || props.county || 'Unknown');
+        const city = escapeHtml(props.city || props.state || '');
+        const region = escapeHtml(props.region || '');
+        const pre = props.visitor_counts_precovid ?? 'N/A';
+        const post = props.visitor_counts_postcovid ?? 'N/A';
+        const pctRaw = props.percent_change;
+        const pct = pctRaw != null ? (pctRaw * 100).toFixed(1) : 'N/A';
+        const pctColor = pctRaw > 0 ? '#10b981' : pctRaw < 0 ? '#f43f5e' : '#94a3b8';
+
+        new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="font-family:system-ui;padding:8px;color:#f1f5f9;">
+              <div style="font-weight:700;font-size:16px;margin-bottom:4px;">${name}</div>
+              <div style="color:#94a3b8;font-size:12px;margin-bottom:10px;">${city}${region ? ', ' + region : ''}</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:#1e293b;padding:8px;border-radius:8px;">
+                  <div style="color:#94a3b8;font-size:10px;text-transform:uppercase;">Pre-COVID</div>
+                  <div style="font-weight:700;">${pre}</div>
+                </div>
+                <div style="background:#1e293b;padding:8px;border-radius:8px;">
+                  <div style="color:#94a3b8;font-size:10px;text-transform:uppercase;">Post-COVID</div>
+                  <div style="font-weight:700;">${post}</div>
+                </div>
+              </div>
+              <div style="text-align:center;margin-top:8px;font-weight:700;color:${pctColor};font-size:14px;">
+                Δ ${pct}%
+              </div>
+            </div>
+          `)
+          .addTo(map);
+      });
+
+      map.on('mouseenter', layerId, () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', layerId, () => {
+        map.getCanvas().style.cursor = '';
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!pmtilesInitialized) {
+      const protocol = new Protocol();
+      maplibregl.addProtocol('pmtiles', protocol.tile);
+      pmtilesInitialized = true;
+    }
+
+    if (!mapContainer.current || mapRef.current) return;
+
+    const map = new maplibregl.Map({
+      container: mapContainer.current,
+      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      center: [-97, 38],
+      zoom: 4,
+    });
+
+    mapRef.current = map;
+
+    map.on('move', () => {
+      setZoom(Math.round(map.getZoom() * 10) / 10);
+    });
+
+    map.on('load', () => {
+      setupLayers(map);
+    });
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Handle layer toggle
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+
+    const layerMap: Record<LayerFilter, string[]> = {
+      all: ['parks_all'],
+      national: ['parks_national', 'parks_national_labels'],
+      state: ['parks_state'],
+      county: ['parks_county'],
+    };
+
+    // Hide all first
+    Object.values(layerMap).flat().forEach(id => {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', 'none');
+      }
+    });
+
+    // Show selected
+    (layerMap[activeLayer] || []).forEach(id => {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', 'visible');
+      }
+    });
+  }, [activeLayer]);
+
+  // Handle fly-to
+  useEffect(() => {
+    if (mapRef.current && selectedCoordinates) {
+      mapRef.current.flyTo({
+        center: selectedCoordinates,
+        zoom: 12,
+        essential: true
+      });
+    }
+  }, [selectedCoordinates]);
+
+  const layerButtons: { label: string; value: LayerFilter }[] = [
+    { label: 'All', value: 'all' },
+    { label: 'National', value: 'national' },
+    { label: 'State', value: 'state' },
+    { label: 'County', value: 'county' },
+  ];
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapContainer} className="absolute inset-0 w-full h-full bg-slate-900" />
+
+      {/* Zoom indicator */}
+      <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-white/10 hidden md:block">
+        Zoom: {zoom}
+      </div>
+
+      {/* Layer filter toggle */}
+      <div className="absolute mx-4 md:mx-0 top-4 md:right-4 z-10 flex flex-wrap gap-1 bg-black/60 backdrop-blur-md rounded-xl p-1.5 border border-white/10 shadow-2xl justify-center">
+        {layerButtons.map(btn => (
+          <button
+            key={btn.value}
+            onClick={() => setActiveLayer(btn.value)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              activeLayer === btn.value
+                ? 'bg-blue-500 text-white shadow-lg'
+                : 'text-slate-300 hover:bg-white/10'
+            }`}
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Color legend */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-md rounded-xl px-5 py-3 border border-white/10 shadow-2xl text-center">
+        <div className="text-xs md:text-sm text-slate-200 mb-2 font-medium">% Change in Avg Monthly Visitations (Pre vs. Post COVID-19)</div>
+        <div className="h-3 w-64 mx-auto rounded-full" style={{
+          background: 'linear-gradient(to right, #c51b7d, #f7f7f7, #4d9221)'
+        }} />
+        <div className="flex justify-between text-[10px] text-slate-400 mt-1 w-64 mx-auto">
+          <span>-100%</span>
+          <span>0%</span>
+          <span>+100%</span>
+        </div>
+        <div className="text-[10px] md:text-xs text-slate-400 mt-1.5">Circle size = post-COVID visitation volume</div>
+      </div>
+    </div>
+  );
+}
