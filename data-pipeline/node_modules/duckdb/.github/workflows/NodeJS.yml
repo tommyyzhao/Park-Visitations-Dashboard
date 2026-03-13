@@ -1,0 +1,286 @@
+name: NodeJS
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+  AWS_ACCESS_KEY_ID: ${{secrets.S3_DUCKDB_NODE_ID}}
+  AWS_SECRET_ACCESS_KEY: ${{secrets.S3_DUCKDB_NODE_KEY}}
+  AWS_ENDPOINT_URL: ${{ secrets.S3_DUCKDB_NODE_ENDPOINT }}
+
+jobs:
+  set-up-npm:
+    name: Upload to NPM
+    runs-on: ubuntu-latest
+    env:
+      DUCKDB_NODE_BUILD_CACHE: 0
+    permissions: # only this job has permission to upload to npm using trusted publishing
+      id-token: write  # Required for OIDC
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup NPM
+        shell: bash
+        run: ./scripts/node_version.sh upload
+        env:
+          DUCKDB_NODE_BUILD_CACHE: 0  # create a standalone package
+
+  linux-nodejs:
+    name: node.js Linux
+    runs-on: ubuntu-22.04
+    needs: set-up-npm
+    continue-on-error: ${{matrix.node != '20' }}
+    env:
+      TARGET_ARCH: ${{ matrix.target_arch }}
+      DUCKDB_NODE_BUILD_CACHE: 0
+    strategy:
+      matrix:
+        # node.js current support policy to be found at https://github.com/duckdb/duckdb-node/tree/main/#Supported-Node-versions
+        node: ['20', '22', '24']
+        target_arch: [ x64, arm64 ]
+        isRelease:
+          - ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
+        exclude:
+          - isRelease: false
+            node: 20
+            target_arch: arm64
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Default Python (3.12) doesn't have support for distutils
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Update apt
+        shell: bash
+        run: |
+          sudo apt-get update -y
+
+      - name: Install requirements
+        shell: bash
+        run: |
+          sudo apt-get install -y git ninja-build make gcc-multilib g++-multilib wget libssl-dev
+
+      - name: Setup Ccache
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          key: ${{ github.job }}
+          save: ${{ ( github.ref == 'refs/heads/main' || github.repository != 'duckdb/duckdb-node' ) && ( matrix.node == '19' ) }}
+
+      - name: Setup
+        shell: bash
+        run: ./scripts/node_version.sh
+        env:
+          DUCKDB_NODE_BUILD_CACHE: 0  # create a standalone package
+          NODE_AUTH_TOKEN: ${{secrets.NODE_AUTH_TOKEN}}
+
+      - name: Validate Docs
+        run: npx jsdoc-to-markdown --files lib/*.js >> $GITHUB_STEP_SUMMARY
+        env:
+          npm_config_yes: true
+
+      - name: Node ${{ matrix.node }}
+        shell: bash
+        run: ./scripts/node_build.sh ${{ matrix.node }}
+
+  osx-nodejs-arm64:
+    name: node.js OSX arm64
+    runs-on: macos-15
+    needs: set-up-npm
+    continue-on-error: ${{ matrix.node != '20'  }}
+    strategy:
+      matrix:
+        target_arch: [ arm64 ]
+        node: ['20', '22', '24']
+        isRelease:
+          - ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
+
+    env:
+      TARGET_ARCH: ${{ matrix.target_arch }}
+      DUCKDB_NODE_BUILD_CACHE: 0
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Default Python (3.12) doesn't have support for distutils
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Setup Ccache
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          key: ${{ github.job }}-${{ matrix.target_arch }}
+          save: ${{ ( github.ref == 'refs/heads/main' || github.repository != 'duckdb/duckdb-node' ) && ( matrix.node == '19' ) }}
+
+      - name: Downgrade curl # fixes a bug with the brew curl that lead to failed downloads
+        shell: bash
+        run: |
+          brew uninstall --ignore-dependencies curl
+          which curl
+
+      - name: Setup
+        shell: bash
+        run: ./scripts/node_version.sh
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NODE_AUTH_TOKEN}}
+
+      - name: Node ${{ matrix.node }}
+        shell: bash
+        run: ./scripts/node_build.sh ${{ matrix.node }}
+
+  osx-nodejs-x64:
+    name: node.js OSX x64
+    runs-on: macos-15-intel
+    needs: set-up-npm
+    continue-on-error: ${{  matrix.node != '20' }}
+    strategy:
+      matrix:
+        target_arch: [ x64 ]
+        node: ['20', '22', '24']
+        isRelease:
+          - ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
+    env:
+      TARGET_ARCH: ${{ matrix.target_arch }}
+      DUCKDB_NODE_BUILD_CACHE: 0
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Default Python (3.12) doesn't have support for distutils
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Setup Ccache
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          key: ${{ github.job }}-${{ matrix.target_arch }}
+          save: ${{ ( github.ref == 'refs/heads/main' || github.repository != 'duckdb/duckdb-node' ) && ( matrix.node == '19' ) }}
+
+      - name: Downgrade curl # fixes a bug with the brew curl that lead to failed downloads
+        shell: bash
+        run: |
+          brew uninstall --ignore-dependencies curl
+          which curl
+
+      - name: Setup
+        shell: bash
+        run: ./scripts/node_version.sh
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NODE_AUTH_TOKEN}}
+
+      - name: Node ${{ matrix.node }}
+        shell: bash
+        run: ./scripts/node_build.sh ${{ matrix.node }}
+
+  win-nodejs:
+    name: node.js Windows
+    runs-on: windows-latest
+    needs: set-up-npm
+    continue-on-error: ${{ matrix.node != '20' }}
+    env:
+      npm_config_msvs_version: 2019
+
+    strategy:
+      matrix:
+        node: ['20', '22', '24']
+        isRelease:
+          - ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
+        exclude:
+          - isRelease: false
+            node: 20
+
+    steps:
+      # Default Python (3.12) doesn't have support for distutils
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Versions
+        shell: bash
+        run: |
+          systeminfo
+          node -v
+          npm -v
+
+      - name: Windows Build Tools
+        shell: bash
+        run: |
+          choco install visualstudio2019-workload-vctools -y
+
+      - name: Node Version
+        shell: bash
+        run: ./scripts/node_version.sh
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NODE_AUTH_TOKEN}}
+
+      - name: Setup Ccache
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          key: ${{ github.job }}-${{ matrix.node }}
+          save: ${{ github.ref == 'refs/heads/main' || github.repository != 'duckdb/duckdb-node' }}
+          variant: sccache
+
+      - name: Node
+        shell: bash
+        run: ./scripts/node_build_win.sh
+
+  test_matrix:
+    needs:
+      - linux-nodejs
+      - osx-nodejs-arm64
+      - osx-nodejs-x64
+      - win-nodejs
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        version: [20]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.version }}
+
+      - uses: actions/checkout@v3
+        with:
+          sparse-checkout: examples
+
+      - name: Install duckdb
+        run: |
+          npm install duckdb@next
+
+      - name: Run minor test
+        shell: bash
+        run: |
+          node examples/example.js
