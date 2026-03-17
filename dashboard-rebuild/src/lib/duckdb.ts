@@ -97,3 +97,44 @@ export async function queryCounties(searchTerm: string): Promise<any[]> {
 
   return result.toArray().map(row => cleanRow(row.toJSON()));
 }
+
+export async function queryParkById(id: string): Promise<any | null> {
+  const c = await getConnection();
+  const result = await c.query(`
+    SELECT *
+    FROM read_parquet('park_pois.parquet')
+    WHERE safegraph_place_id = '${id.replace(/'/g, "''")}'
+    LIMIT 1
+  `);
+  const rows = result.toArray().map(row => cleanRow(row.toJSON()));
+  return rows.length > 0 ? rows[0] : null;
+}
+
+export async function queryCountyByFips(fips: string | number): Promise<any | null> {
+  const c = await getConnection();
+  const result = await c.query(`
+    SELECT *
+    FROM read_parquet('patterns_by_county.parquet')
+    WHERE county_fips = ${Number(fips)}
+    LIMIT 1
+  `);
+  const rows = result.toArray().map(row => cleanRow(row.toJSON()));
+  return rows.length > 0 ? rows[0] : null;
+}
+
+export async function queryCountyByName(name: string, state?: string): Promise<any | null> {
+  const c = await getConnection();
+  let sql = `
+    SELECT *
+    FROM read_parquet('patterns_by_county.parquet')
+    WHERE LOWER(county_ascii::VARCHAR) = LOWER('${name.replace(/'/g, "''")}')
+  `;
+  if (state) {
+    sql += ` AND LOWER(state_name::VARCHAR) LIKE LOWER('%${state.replace(/'/g, "''")}%')`;
+  }
+  sql += ` LIMIT 1`;
+  
+  const result = await c.query(sql);
+  const rows = result.toArray().map(row => cleanRow(row.toJSON()));
+  return rows.length > 0 ? rows[0] : null;
+}
