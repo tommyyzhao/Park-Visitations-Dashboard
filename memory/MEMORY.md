@@ -19,3 +19,6 @@
 ## 5. React Lifecycle Integration with WebGL Maps
 - **Constraint**: WebGL bridges like MapLibre and visualization libraries like Recharts are profoundly sensitive to changing object references in functional React components.
 - **Resolution**: Strictly `useMemo` complex coordinate arrays or filtered metrics. Failure to stabilize arrays fed to map `useEffect` observers causes catastrophic re-renders and infinite `flyTo()` loop cascades. Strip event callbacks from dependency arrays and safely capture them using `useRef` to track state closures.
+## 6. Analytical Data vs. Rendering Properties
+- **Axiom**: Map rendering formats (Vector Tiles / PMTiles) optimized for size often strip or simplify complex time-series/nested JSON payloads to preserve performance.
+- **Resolution**: Do not rely on map feature click properties for full analytical views. Instead, use the map selection event to extract a stable unique ID (e.g., `safegraph_place_id` or `county_fips`) and trigger a high-speed DuckDB "surgical" fetch against the source Parquet file to hydrate the UI with full telemetry.
