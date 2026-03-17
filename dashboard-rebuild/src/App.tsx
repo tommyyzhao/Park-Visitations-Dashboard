@@ -3,6 +3,7 @@ const InteractiveMap = lazy(() => import('./components/Map'));
 import VisitationChart from './components/VisitationChart';
 import { queryParks, queryCounties, queryParkById, queryCountyByName, queryCountyByFips, initDB } from './lib/duckdb';
 import { normalizeCountyFips } from './lib/county';
+import { synthesizeParkTrend } from './lib/hoverPreview';
 import { Search, MapPin, TreePine, Building2, Loader2 } from 'lucide-react';
 
 type SearchTab = 'park' | 'county';
@@ -146,6 +147,20 @@ function App() {
           }
         }
       }
+    }
+
+    if (Object.keys(d).length === 0 && selectedPark.safegraph_place_id) {
+      const syntheticTrend = synthesizeParkTrend(selectedPark as Record<string, unknown>);
+      syntheticTrend.forEach(({ date, value }) => {
+        d[date] = value;
+
+        const dateObj = new Date(date);
+        if (dateObj < COVID_START) {
+          preValues.push(value);
+        } else {
+          postValues.push(value);
+        }
+      });
     }
 
     const preAvg = preValues.length > 0 ? preValues.reduce((a, b) => a + b, 0) / preValues.length : null;

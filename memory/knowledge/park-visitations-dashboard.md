@@ -49,13 +49,57 @@
 - County clicks should only fire when no park feature is hit.
 - County selection should preserve the current park overlay filter.
 
+## Hover Preview Architecture
+- The old MapLibre popup HTML path has been retired from the active map in favor of a React-rendered hover card inside `dashboard-rebuild/src/components/Map.tsx`.
+- Hover previews are desktop-only (`(hover: hover) and (pointer: fine)`), preview-only, and must never mutate persistent sidebar selection, fly-to state, or overlay filters.
+- Hover hit testing uses the same `queryRenderedFeatures()` strategy as click, but now splits into:
+  - persistent `click` selection routed upstream through `onSelectedLocation`
+  - temporary hover preview state local to `Map.tsx`
+- Hover priority is explicit:
+  - park layers first
+  - telemetry county fill second
+  - county base fill third
+- Counties with no telemetry are hoverable because interaction now includes both `counties_fill_data` and `counties_fill_base`.
+- Hover intent is delayed by `140ms`, and previews clear on map leave and move start to avoid flicker and stale overlays.
+
+## Hover Preview Data Model
+- Hover preview shaping lives in `dashboard-rebuild/src/lib/hoverPreview.ts`.
+- Core internal types:
+  - `HoverPreviewData`
+  - `TrendPoint`
+  - `HoverTrendMode = 'modeled' | 'real' | 'none'`
+- Parks are summarized directly from map-tile props and use `synthesizeParkTrend(...)` for a deterministic modeled monthly series derived from `safegraph_place_id` plus aggregate pre/post values.
+- Counties render immediately from tile props, then lazily hydrate real monthly telemetry via `queryCountyByFips(...)`; hydrated county rows are cached by `county_fips`.
+- County subtitle fallback now infers state name from county FIPS when the polygon tile lacks `state_name`.
+
+## Sidebar / Chart Behavior
+- County timelines still come from real date-keyed fields on the hydrated county row.
+- Park POIs do not have real monthly series in the repo, but the sidebar chart now reuses `synthesizeParkTrend(...)` when a selected park has aggregate metrics but no date-keyed series.
+- For park POIs with valid pre/post aggregate values, the sidebar chart should never show the empty “No visitation telemetry available” state.
+- The chart empty state should now be reserved for locations that truly have neither real time series nor usable aggregate metrics.
+
+## Runtime Data Asset Caveat
+- The active app loads Parquet assets from `dashboard-rebuild/public/data`, not from `data-pipeline/` and not from `dashboard-rebuild/public/`.
+- `dashboard-rebuild/public/data/park_pois.parquet` is a runtime-critical asset and must stay in sync with `data-pipeline/park_pois.parquet`.
+- A stale copy in `public/data` caused park click/search hydration to return rows with no `visitor_counts_precovid`, `visitor_counts_postcovid`, or `percent_change`, even though newer generated Parquet files in the repo did contain those fields.
+- When park sidebar metrics unexpectedly degrade to `N/A`, verify the schema of the runtime asset in `public/data` before debugging DuckDB query logic.
+
 ## Verification State
 - `npm run build` in `dashboard-rebuild` passed after the default-`All` conversion, the multi-band `All` reveal implementation, and the follow-up change that delayed full local density until zoom 9.
 - Browser verification confirmed: `All` is active by default, zoom 3 shows national-only, zoom 4 shows national + state, local density ramps in through zooms 5/6/7/8, full local density waits until zoom 9+, filter toggles switch cleanly, and the console remains warning-free aside from the longstanding Vite chunk-size warning during build.
+- `npm run build` also passed after the hover-preview implementation, the park sidebar synthetic-trend fallback, and the runtime `park_pois.parquet` refresh.
+- Browser checks on local preview confirmed:
+  - hover previews appear for parks and counties
+  - no-data counties still get a hover card
+  - park click/search selection repopulates sidebar metrics once the runtime `public/data/park_pois.parquet` asset is refreshed
+  - a selected park with aggregate-only telemetry (for example `Lamar Valley`) now shows summary metrics plus a plausible sidebar graph instead of the chart empty state
 
 ## Dirty Worktree Snapshot
 - Modified:
+  - `dashboard-rebuild/public/data/park_pois.parquet`
   - `dashboard-rebuild/src/App.tsx`
   - `dashboard-rebuild/src/components/Map.tsx`
 - Untracked:
+  - `dashboard-rebuild/src/components/HoverPreviewCard.tsx`
+  - `dashboard-rebuild/src/lib/hoverPreview.ts`
   - `park-visitation-logo.png`

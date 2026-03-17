@@ -1,20 +1,22 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
+import HoverPreviewCard from './HoverPreviewCard';
+import { queryCountyByFips } from '../lib/duckdb';
+import { normalizeCountyFips } from '../lib/county';
+import {
+  getHoverFeatureKey,
+  getStateNameFromCountyFips,
+  hydrateCountyPreview,
+  resolveHoverPreview,
+  type HoverPreviewData,
+  type HoverPreviewKind,
+} from '../lib/hoverPreview';
 
 let pmtilesInitialized = false;
 const PARK_DOT_STROKE = '#020617';
-
-function escapeHtml(unsafe: string | number | undefined | null) {
-  if (unsafe == null) return '';
-  return String(unsafe)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+const HOVER_INTENT_MS = 140;
 
 type SelectedKind = 'park' | 'county' | null;
 type ParkLayerFilter = 'all' | 'national' | 'state';
@@ -41,6 +43,16 @@ const PARK_CIRCLE_LAYER_IDS = [
   ...ALL_MODE_PARK_LAYER_IDS,
   'parks_national',
   'parks_state'
+];
+
+const PARK_INTERACTIVE_LAYER_IDS = [
+  ...PARK_CIRCLE_LAYER_IDS,
+  'parks_national_labels'
+];
+
+const COUNTY_INTERACTIVE_LAYER_IDS = [
+  'counties_fill_data',
+  'counties_fill_base',
 ];
 
 const PARK_LAYER_VISIBILITY_MAP: Record<ParkLayerFilter, string[]> = {
@@ -73,13 +85,13 @@ function createParkCircleLayer({
   visibility = 'none',
 }: {
   id: string;
-  filter?: any;
+  filter?: unknown;
   minzoom: number;
   maxzoom?: number;
-  radius: any;
+  radius: unknown;
   visibility?: 'visible' | 'none';
 }) {
-  const layer: any = {
+  const layer: Record<string, unknown> = {
     id,
     type: 'circle',
     source: 'parks_data',
@@ -103,11 +115,11 @@ function createParkCircleLayer({
     layer.maxzoom = maxzoom;
   }
 
-  return layer;
+  return layer as unknown as maplibregl.AddLayerObject;
 }
 
 function createLocalFilter(minVisitors?: number) {
-  const filter: any[] = [
+  const filter: unknown[] = [
     'all',
     ['==', ['to-number', ['get', 'national']], 0],
     ['==', ['to-number', ['get', 'state']], 0],
@@ -123,16 +135,22 @@ function createLocalFilter(minVisitors?: number) {
 interface MapProps {
   parkLayer: ParkLayerFilter;
   onParkLayerChange?: (layer: ParkLayerFilter) => void;
-  onSelectedLocation?: (properties: any) => void;
+  onSelectedLocation?: (properties: Record<string, unknown>) => void;
   selectedCountyFips?: string | null;
   selectedCoordinates?: [number, number];
   selectedKind?: SelectedKind;
 }
 
-function formatMetric(value: unknown) {
-  const numericValue = Number(value);
-  if (!Number.isFinite(numericValue)) return 'N/A';
-  return numericValue.toLocaleString(undefined, { maximumFractionDigits: 0 });
+interface HoverCandidate {
+  kind: HoverPreviewKind;
+  featureKey: string;
+  props: Record<string, unknown>;
+  position: { x: number; y: number };
+}
+
+function isHoverCapablePointer() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 }
 
 export default function InteractiveMap({
@@ -143,10 +161,20 @@ export default function InteractiveMap({
   selectedCountyFips,
   selectedKind,
 }: MapProps) {
+  const rootContainerRef = useRef<HTMLDivElement>(null);
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const activeLocationHandler = useRef(onSelectedLocation);
+  const hoverPreviewCacheRef = useRef<Map<string, HoverPreviewData>>(new Map());
+  const countyHydrationCacheRef = useRef<Map<string, Record<string, unknown> | null>>(new Map());
+  const countyHydrationRequestRef = useRef<Map<string, Promise<Record<string, unknown> | null>>>(new Map());
+  const hoverIntentTimeoutRef = useRef<number | null>(null);
+  const pendingHoverRef = useRef<HoverCandidate | null>(null);
+  const activeHoverKeyRef = useRef<string | null>(null);
   const [zoom, setZoom] = useState(4);
+  const [hoverPreview, setHoverPreview] = useState<HoverPreviewData | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+  const canHover = useMemo(() => isHoverCapablePointer(), []);
 
   useEffect(() => {
     activeLocationHandler.current = onSelectedLocation;
@@ -174,8 +202,144 @@ export default function InteractiveMap({
     });
   }, []);
 
+  const clearHoverIntent = useCallback(() => {
+    if (hoverIntentTimeoutRef.current != null) {
+      window.clearTimeout(hoverIntentTimeoutRef.current);
+      hoverIntentTimeoutRef.current = null;
+    }
+
+    pendingHoverRef.current = null;
+  }, []);
+
+  const clearHoverPreview = useCallback(() => {
+    clearHoverIntent();
+    activeHoverKeyRef.current = null;
+    setHoverPreview(null);
+    setHoverPosition(null);
+  }, [clearHoverIntent]);
+
+  useEffect(() => () => {
+    clearHoverPreview();
+  }, [clearHoverPreview]);
+
+  const enrichFeatureProps = useCallback((rawProps: unknown): Record<string, unknown> => {
+    const props = rawProps && typeof rawProps === 'object'
+      ? { ...(rawProps as Record<string, unknown>) }
+      : {};
+
+    const normalizedCountyFips = normalizeCountyFips(props.county_fips);
+    const stateName = props.state_name || getStateNameFromCountyFips(normalizedCountyFips);
+
+    return {
+      ...props,
+      county_fips: normalizedCountyFips ?? props.county_fips ?? null,
+      state_name: stateName ?? props.state_name ?? null,
+    };
+  }, []);
+
+  const hydrateCountyHoverPreview = useCallback(async (candidate: HoverCandidate, immediatePreview: HoverPreviewData) => {
+    if (candidate.kind !== 'county' || immediatePreview.status === 'No telemetry available') {
+      return;
+    }
+
+    const countyFips = normalizeCountyFips(candidate.props.county_fips);
+    if (!countyFips) return;
+
+    const cacheKey = candidate.featureKey;
+
+    if (countyHydrationCacheRef.current.has(countyFips)) {
+      const hydratedPreview = hydrateCountyPreview(candidate.props, countyHydrationCacheRef.current.get(countyFips) ?? null);
+      hoverPreviewCacheRef.current.set(cacheKey, hydratedPreview);
+
+      if (activeHoverKeyRef.current === cacheKey) {
+        setHoverPreview(hydratedPreview);
+      }
+      return;
+    }
+
+    let request = countyHydrationRequestRef.current.get(countyFips);
+    if (!request) {
+      request = queryCountyByFips(countyFips)
+        .then((row) => {
+          countyHydrationCacheRef.current.set(countyFips, row ?? null);
+          countyHydrationRequestRef.current.delete(countyFips);
+          return row ?? null;
+        })
+        .catch((err) => {
+          console.error('County hover hydration failed:', err);
+          countyHydrationRequestRef.current.delete(countyFips);
+          return null;
+        });
+
+      countyHydrationRequestRef.current.set(countyFips, request);
+    }
+
+    const row = await request;
+    const hydratedPreview = hydrateCountyPreview(candidate.props, row);
+    hoverPreviewCacheRef.current.set(cacheKey, hydratedPreview);
+
+    if (activeHoverKeyRef.current === cacheKey) {
+      setHoverPreview(hydratedPreview);
+    }
+  }, []);
+
+  const applyHoverCandidate = useCallback((candidate: HoverCandidate) => {
+    activeHoverKeyRef.current = candidate.featureKey;
+    setHoverPosition(candidate.position);
+
+    const cachedPreview = hoverPreviewCacheRef.current.get(candidate.featureKey);
+    if (cachedPreview) {
+      setHoverPreview(cachedPreview);
+
+      if (candidate.kind === 'county' && cachedPreview.trendMode === 'real' && cachedPreview.trendPoints.length === 0 && !cachedPreview.status) {
+        void hydrateCountyHoverPreview(candidate, cachedPreview);
+      }
+      return;
+    }
+
+    const immediatePreview = resolveHoverPreview({ kind: candidate.kind, props: candidate.props });
+    hoverPreviewCacheRef.current.set(candidate.featureKey, immediatePreview);
+    setHoverPreview(immediatePreview);
+
+    if (candidate.kind === 'county' && immediatePreview.trendMode === 'real' && !immediatePreview.status) {
+      void hydrateCountyHoverPreview(candidate, immediatePreview);
+    }
+  }, [hydrateCountyHoverPreview]);
+
+  const scheduleHoverCandidate = useCallback((candidate: HoverCandidate) => {
+    clearHoverIntent();
+    pendingHoverRef.current = candidate;
+
+    hoverIntentTimeoutRef.current = window.setTimeout(() => {
+      hoverIntentTimeoutRef.current = null;
+      const nextCandidate = pendingHoverRef.current;
+      pendingHoverRef.current = null;
+
+      if (!nextCandidate) return;
+      applyHoverCandidate(nextCandidate);
+    }, HOVER_INTENT_MS);
+  }, [applyHoverCandidate, clearHoverIntent]);
+
+  const resolveFeatureHit = useCallback((features: maplibregl.MapGeoJSONFeature[]) => {
+    const parkFeature = features.find((feature) => PARK_INTERACTIVE_LAYER_IDS.includes(feature.layer.id));
+    if (parkFeature) {
+      return { kind: 'park' as HoverPreviewKind, feature: parkFeature };
+    }
+
+    const countyDataFeature = features.find((feature) => feature.layer.id === 'counties_fill_data');
+    if (countyDataFeature) {
+      return { kind: 'county' as HoverPreviewKind, feature: countyDataFeature };
+    }
+
+    const countyBaseFeature = features.find((feature) => feature.layer.id === 'counties_fill_base');
+    if (countyBaseFeature) {
+      return { kind: 'county' as HoverPreviewKind, feature: countyBaseFeature };
+    }
+
+    return null;
+  }, []);
+
   const setupLayers = useCallback((map: maplibregl.Map) => {
-    // Add PMTiles sources
     if (!map.getSource('parks_data')) {
       map.addSource('parks_data', {
         type: 'vector',
@@ -189,7 +353,6 @@ export default function InteractiveMap({
       });
     }
 
-    // County base geometry
     map.addLayer({
       id: 'counties_fill_base',
       type: 'fill',
@@ -220,7 +383,6 @@ export default function InteractiveMap({
       layout: { 'visibility': 'visible' }
     });
 
-    // Soft county halo to give the polygons a subtle inverse-glow edge
     map.addLayer({
       id: 'counties_glow',
       type: 'line',
@@ -322,7 +484,6 @@ export default function InteractiveMap({
       radius: ALL_MODE_RADIUS
     }));
 
-    // National Parks layer
     map.addLayer(createParkCircleLayer({
       id: 'parks_national',
       filter: ['==', ['to-number', ['get', 'national']], 1],
@@ -330,7 +491,6 @@ export default function InteractiveMap({
       radius: FOCUSED_MODE_RADIUS
     }));
 
-    // State Parks layer
     map.addLayer(createParkCircleLayer({
       id: 'parks_state',
       filter: ['==', ['to-number', ['get', 'state']], 1],
@@ -338,7 +498,6 @@ export default function InteractiveMap({
       radius: FOCUSED_MODE_RADIUS
     }));
 
-    // Labels for national parks
     map.addLayer({
       id: 'parks_national_labels',
       type: 'symbol',
@@ -360,65 +519,75 @@ export default function InteractiveMap({
       }
     });
 
-    const parkLayers = PARK_CIRCLE_LAYER_IDS;
-    const clickableLayers = [...parkLayers, 'counties_fill_data'];
-
-    const showPopup = (props: any, lngLat: maplibregl.LngLat) => {
-      const name = escapeHtml(props.location || props.county || props.county_ascii || 'Unknown');
-      const place = escapeHtml(props.city || props.state_name || props.state || '');
-      const region = escapeHtml(props.region || '');
-      const pre = formatMetric(props.visitor_counts_precovid);
-      const post = formatMetric(props.visitor_counts_postcovid);
-      const pctRaw = props.percent_change != null ? Number(props.percent_change) : null;
-      const pct = pctRaw != null ? (pctRaw * 100).toFixed(1) : 'N/A';
-      const pctColor = pctRaw == null ? '#94a3b8' : pctRaw > 0 ? '#10b981' : pctRaw < 0 ? '#f43f5e' : '#94a3b8';
-
-      new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
-        .setLngLat(lngLat)
-        .setHTML(`
-          <div style="font-family:system-ui;padding:8px;color:#f1f5f9;">
-            <div style="font-weight:700;font-size:16px;margin-bottom:4px;">${name}</div>
-            <div style="color:#94a3b8;font-size:12px;margin-bottom:10px;">${place}${region ? ', ' + region : ''}</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <div style="background:#1e293b;padding:8px;border-radius:8px;">
-                <div style="color:#94a3b8;font-size:10px;text-transform:uppercase;">Pre-COVID</div>
-                <div style="font-weight:700;">${pre}</div>
-              </div>
-              <div style="background:#1e293b;padding:8px;border-radius:8px;">
-                <div style="color:#94a3b8;font-size:10px;text-transform:uppercase;">Post-COVID</div>
-                <div style="font-weight:700;">${post}</div>
-              </div>
-            </div>
-            <div style="text-align:center;margin-top:8px;font-weight:700;color:${pctColor};font-size:14px;">
-              Δ ${pct}%
-            </div>
-          </div>
-        `)
-        .addTo(map);
-    };
+    const interactiveLayers = [...PARK_INTERACTIVE_LAYER_IDS, ...COUNTY_INTERACTIVE_LAYER_IDS];
 
     map.on('click', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: clickableLayers });
+      clearHoverPreview();
+
+      const features = map.queryRenderedFeatures(e.point, { layers: interactiveLayers });
       if (!features.length) return;
 
-      const parkFeature = features.find((feature) => parkLayers.includes(feature.layer.id));
-      const feature = parkFeature ?? features.find((candidate) => candidate.layer.id === 'counties_fill_data');
-      if (!feature) return;
+      const resolved = resolveFeatureHit(features);
+      if (!resolved) return;
 
-      const props = feature.properties;
+      const props = enrichFeatureProps(resolved.feature.properties);
       if (activeLocationHandler.current) activeLocationHandler.current(props);
-      showPopup(props, e.lngLat);
     });
 
-    map.on('mousemove', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: clickableLayers });
-      map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : '';
-    });
+    if (canHover) {
+      map.on('mousemove', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: interactiveLayers });
+        const resolved = resolveFeatureHit(features);
 
-    map.on('mouseout', () => {
-      map.getCanvas().style.cursor = '';
-    });
-  }, []);
+        if (!resolved) {
+          map.getCanvas().style.cursor = '';
+          clearHoverPreview();
+          return;
+        }
+
+        map.getCanvas().style.cursor = 'pointer';
+
+        const props = enrichFeatureProps(resolved.feature.properties);
+        const featureKey = getHoverFeatureKey(resolved.kind, props);
+
+        if (activeHoverKeyRef.current === featureKey) {
+          setHoverPosition({ x: e.point.x, y: e.point.y });
+          return;
+        }
+
+        if (pendingHoverRef.current?.featureKey === featureKey) {
+          pendingHoverRef.current = {
+            ...pendingHoverRef.current,
+            position: { x: e.point.x, y: e.point.y },
+          };
+          return;
+        }
+
+        if (activeHoverKeyRef.current && activeHoverKeyRef.current !== featureKey) {
+          activeHoverKeyRef.current = null;
+          setHoverPreview(null);
+          setHoverPosition(null);
+        }
+
+        scheduleHoverCandidate({
+          kind: resolved.kind,
+          featureKey,
+          props,
+          position: { x: e.point.x, y: e.point.y },
+        });
+      });
+
+      map.on('mouseout', () => {
+        map.getCanvas().style.cursor = '';
+        clearHoverPreview();
+      });
+
+      map.on('movestart', () => {
+        map.getCanvas().style.cursor = '';
+        clearHoverPreview();
+      });
+    }
+  }, [canHover, clearHoverPreview, enrichFeatureProps, resolveFeatureHit, scheduleHoverCandidate]);
 
   useEffect(() => {
     if (!pmtilesInitialized) {
@@ -451,10 +620,8 @@ export default function InteractiveMap({
       map.remove();
       mapRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parkLayer, setupLayers, syncParkLayerVisibility]);
 
-  // Handle park overlay toggle
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
@@ -472,7 +639,6 @@ export default function InteractiveMap({
     }
   }, [selectedCountyFips]);
 
-  // Handle fly-to
   useEffect(() => {
     if (mapRef.current && selectedCoordinates) {
       mapRef.current.flyTo({
@@ -489,16 +655,27 @@ export default function InteractiveMap({
     { label: 'State', value: 'state' },
   ];
 
+  const hoverBounds = {
+    width: rootContainerRef.current?.clientWidth ?? 0,
+    height: rootContainerRef.current?.clientHeight ?? 0,
+  };
+
   return (
-    <div className="relative w-full h-full">
+    <div ref={rootContainerRef} className="relative w-full h-full">
       <div ref={mapContainer} className="absolute inset-0 w-full h-full bg-slate-900" />
 
-      {/* Zoom indicator */}
+      {canHover && hoverPreview && hoverPosition ? (
+        <HoverPreviewCard
+          preview={hoverPreview}
+          position={hoverPosition}
+          bounds={hoverBounds}
+        />
+      ) : null}
+
       <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-white/10 hidden md:block">
         Zoom: {zoom}
       </div>
 
-      {/* Layer filter toggle */}
       <div className="absolute mx-4 md:mx-0 top-4 md:right-4 z-10 flex flex-wrap gap-1 bg-black/60 backdrop-blur-md rounded-xl p-1.5 border border-white/10 shadow-2xl justify-center">
         {layerButtons.map(btn => (
           <button
@@ -515,7 +692,6 @@ export default function InteractiveMap({
         ))}
       </div>
 
-      {/* Color legend */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-md rounded-xl px-5 py-3 border border-white/10 shadow-2xl text-center">
         <div className="text-xs md:text-sm text-slate-200 mb-2 font-medium">% Change in Avg Monthly Visitations (Pre vs. Post COVID-19)</div>
         <div className="h-3 w-64 mx-auto rounded-full" style={{
