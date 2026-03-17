@@ -19,6 +19,107 @@ function escapeHtml(unsafe: string | number | undefined | null) {
 type SelectedKind = 'park' | 'county' | null;
 type ParkLayerFilter = 'all' | 'national' | 'state';
 
+const COUNTY_LAYER_IDS = [
+  'counties_fill_base',
+  'counties_fill_data',
+  'counties_glow',
+  'counties_outline',
+  'counties_selected_outline'
+];
+
+const ALL_MODE_PARK_LAYER_IDS = [
+  'all_national',
+  'all_state',
+  'all_local_top',
+  'all_local_major',
+  'all_local_regional',
+  'all_local_dense',
+  'all_local_full'
+];
+
+const PARK_CIRCLE_LAYER_IDS = [
+  ...ALL_MODE_PARK_LAYER_IDS,
+  'parks_national',
+  'parks_state'
+];
+
+const PARK_LAYER_VISIBILITY_MAP: Record<ParkLayerFilter, string[]> = {
+  all: [...ALL_MODE_PARK_LAYER_IDS, 'parks_national_labels'],
+  national: ['parks_national', 'parks_national_labels'],
+  state: ['parks_state'],
+};
+
+const ALL_MODE_RADIUS = [
+  'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
+  1, 3, 10, 4, 100, 5, 1000, 6, 10000, 8
+];
+
+const FOCUSED_MODE_RADIUS = [
+  'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
+  1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
+];
+
+const PARK_COLOR_RAMP = [
+  'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
+  -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
+];
+
+function createParkCircleLayer({
+  id,
+  filter,
+  minzoom,
+  maxzoom,
+  radius,
+  visibility = 'none',
+}: {
+  id: string;
+  filter?: any;
+  minzoom: number;
+  maxzoom?: number;
+  radius: any;
+  visibility?: 'visible' | 'none';
+}) {
+  const layer: any = {
+    id,
+    type: 'circle',
+    source: 'parks_data',
+    'source-layer': 'labeled_change',
+    minzoom,
+    paint: {
+      'circle-radius': radius,
+      'circle-color': PARK_COLOR_RAMP,
+      'circle-opacity': 0.96,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': PARK_DOT_STROKE
+    },
+    layout: { 'visibility': visibility }
+  };
+
+  if (filter) {
+    layer.filter = filter;
+  }
+
+  if (maxzoom != null) {
+    layer.maxzoom = maxzoom;
+  }
+
+  return layer;
+}
+
+function createLocalFilter(minVisitors?: number) {
+  const filter: any[] = [
+    'all',
+    ['==', ['to-number', ['get', 'national']], 0],
+    ['==', ['to-number', ['get', 'state']], 0],
+  ];
+
+  if (minVisitors != null) {
+    filter.push(['>=', ['to-number', ['get', 'visitor_counts_postcovid']], minVisitors]);
+  }
+
+  return filter;
+}
+
 interface MapProps {
   parkLayer: ParkLayerFilter;
   onParkLayerChange?: (layer: ParkLayerFilter) => void;
@@ -50,6 +151,28 @@ export default function InteractiveMap({
   useEffect(() => {
     activeLocationHandler.current = onSelectedLocation;
   }, [onSelectedLocation]);
+
+  const syncParkLayerVisibility = useCallback((map: maplibregl.Map, layer: ParkLayerFilter) => {
+    const parkLayerIds = Array.from(new Set(Object.values(PARK_LAYER_VISIBILITY_MAP).flat()));
+
+    parkLayerIds.forEach((id) => {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', 'none');
+      }
+    });
+
+    COUNTY_LAYER_IDS.forEach((id) => {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', 'visible');
+      }
+    });
+
+    (PARK_LAYER_VISIBILITY_MAP[layer] || []).forEach((id) => {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', 'visible');
+      }
+    });
+  }, []);
 
   const setupLayers = useCallback((map: maplibregl.Map) => {
     // Add PMTiles sources
@@ -146,76 +269,74 @@ export default function InteractiveMap({
       layout: { 'visibility': 'visible' }
     });
 
-    // All Parks layer
-    map.addLayer({
-      id: 'parks_all',
-      type: 'circle',
-      source: 'parks_data',
-      'source-layer': 'labeled_change',
+    map.addLayer(createParkCircleLayer({
+      id: 'all_national',
+      filter: ['==', ['to-number', ['get', 'national']], 1],
+      minzoom: 0,
+      radius: ALL_MODE_RADIUS
+    }));
+
+    map.addLayer(createParkCircleLayer({
+      id: 'all_state',
+      filter: ['==', ['to-number', ['get', 'state']], 1],
+      minzoom: 4,
+      radius: ALL_MODE_RADIUS
+    }));
+
+    map.addLayer(createParkCircleLayer({
+      id: 'all_local_top',
+      filter: createLocalFilter(4000),
+      minzoom: 5,
+      maxzoom: 6,
+      radius: ALL_MODE_RADIUS
+    }));
+
+    map.addLayer(createParkCircleLayer({
+      id: 'all_local_major',
+      filter: createLocalFilter(1000),
+      minzoom: 6,
+      maxzoom: 7,
+      radius: ALL_MODE_RADIUS
+    }));
+
+    map.addLayer(createParkCircleLayer({
+      id: 'all_local_regional',
+      filter: createLocalFilter(450),
       minzoom: 7,
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
-          1, 3, 10, 4, 100, 5, 1000, 6, 10000, 8
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
-          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
-        ],
-        'circle-opacity': 0.96,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': PARK_DOT_STROKE
-      },
-      layout: { 'visibility': 'none' }
-    });
+      maxzoom: 8,
+      radius: ALL_MODE_RADIUS
+    }));
+
+    map.addLayer(createParkCircleLayer({
+      id: 'all_local_dense',
+      filter: createLocalFilter(250),
+      minzoom: 8,
+      maxzoom: 9,
+      radius: ALL_MODE_RADIUS
+    }));
+
+    map.addLayer(createParkCircleLayer({
+      id: 'all_local_full',
+      filter: createLocalFilter(),
+      minzoom: 9,
+      radius: ALL_MODE_RADIUS
+    }));
 
     // National Parks layer
-    map.addLayer({
+    map.addLayer(createParkCircleLayer({
       id: 'parks_national',
-      type: 'circle',
-      source: 'parks_data',
-      'source-layer': 'labeled_change',
       filter: ['==', ['to-number', ['get', 'national']], 1],
       minzoom: 3,
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
-          1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
-          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
-        ],
-        'circle-opacity': 0.96,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': PARK_DOT_STROKE
-      },
-      layout: { 'visibility': 'visible' }
-    });
+      radius: FOCUSED_MODE_RADIUS
+    }));
 
     // State Parks layer
-    map.addLayer({
+    map.addLayer(createParkCircleLayer({
       id: 'parks_state',
-      type: 'circle',
-      source: 'parks_data',
-      'source-layer': 'labeled_change',
       filter: ['==', ['to-number', ['get', 'state']], 1],
       minzoom: 3,
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
-          1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
-          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
-        ],
-        'circle-opacity': 0.96,
-        'circle-stroke-width': 1,
-        'circle-stroke-color': PARK_DOT_STROKE
-      },
-      layout: { 'visibility': 'none' }
-    });
+      radius: FOCUSED_MODE_RADIUS
+    }));
 
     // Labels for national parks
     map.addLayer({
@@ -239,7 +360,7 @@ export default function InteractiveMap({
       }
     });
 
-    const parkLayers = ['parks_all', 'parks_national', 'parks_state'];
+    const parkLayers = PARK_CIRCLE_LAYER_IDS;
     const clickableLayers = [...parkLayers, 'counties_fill_data'];
 
     const showPopup = (props: any, lngLat: maplibregl.LngLat) => {
@@ -323,6 +444,7 @@ export default function InteractiveMap({
 
     map.on('load', () => {
       setupLayers(map);
+      syncParkLayerVisibility(map, parkLayer);
     });
 
     return () => {
@@ -330,40 +452,14 @@ export default function InteractiveMap({
       mapRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [parkLayer, setupLayers, syncParkLayerVisibility]);
 
   // Handle park overlay toggle
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
-
-    const layerMap: Record<ParkLayerFilter, string[]> = {
-      all: ['parks_all'],
-      national: ['parks_national', 'parks_national_labels'],
-      state: ['parks_state'],
-    };
-
-    // Hide all park overlays first
-    Object.values(layerMap).flat().forEach(id => {
-      if (map.getLayer(id)) {
-        map.setLayoutProperty(id, 'visibility', 'none');
-      }
-    });
-
-    // County layers are always on
-    ['counties_fill_base', 'counties_fill_data', 'counties_glow', 'counties_outline', 'counties_selected_outline'].forEach(id => {
-      if (map.getLayer(id)) {
-        map.setLayoutProperty(id, 'visibility', 'visible');
-      }
-    });
-
-    // Show selected park overlay
-    (layerMap[parkLayer] || []).forEach(id => {
-      if (map.getLayer(id)) {
-        map.setLayoutProperty(id, 'visibility', 'visible');
-      }
-    });
-  }, [parkLayer]);
+    syncParkLayerVisibility(map, parkLayer);
+  }, [parkLayer, syncParkLayerVisibility]);
 
   useEffect(() => {
     const map = mapRef.current;

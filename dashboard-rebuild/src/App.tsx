@@ -3,7 +3,7 @@ const InteractiveMap = lazy(() => import('./components/Map'));
 import VisitationChart from './components/VisitationChart';
 import { queryParks, queryCounties, queryParkById, queryCountyByName, queryCountyByFips, initDB } from './lib/duckdb';
 import { normalizeCountyFips } from './lib/county';
-import { Search, MapPin, Navigation2, TreePine, Building2, Loader2 } from 'lucide-react';
+import { Search, MapPin, TreePine, Building2, Loader2 } from 'lucide-react';
 
 type SearchTab = 'park' | 'county';
 type ChartMode = 'line' | 'overlay';
@@ -23,7 +23,7 @@ function App() {
   const [selectedPark, setSelectedPark] = useState<any | null>(null);
   const [selectedKind, setSelectedKind] = useState<SelectedKind>(null);
   const [selectedCountyFips, setSelectedCountyFips] = useState<string | null>(null);
-  const [parkLayer, setParkLayer] = useState<ParkLayerFilter>('national');
+  const [parkLayer, setParkLayer] = useState<ParkLayerFilter>('all');
   const [isSearching, setIsSearching] = useState(false);
   const [isDbReady, setIsDbReady] = useState(false);
   const [chartMode, setChartMode] = useState<ChartMode>('line');
@@ -81,7 +81,7 @@ function App() {
 
     // Check if props has the date keys (time series data)
     const hasTimeSeries = Object.keys(props).some(k => /^\d{4}/.test(k) || k.includes('/'));
-    
+
     if (!hasTimeSeries) {
       if (props.safegraph_place_id) {
         const full = await queryParkById(props.safegraph_place_id);
@@ -168,28 +168,26 @@ function App() {
 
         {/* Header */}
         <div className="p-5 border-b border-white/10">
-          <div className="flex items-center gap-3 text-blue-400 mb-1">
-            <Navigation2 className="w-5 h-5" />
-            <h1 className="text-lg font-bold tracking-tight text-white m-0">ParkVisitations</h1>
+          <div className="flex items-center gap-3 mb-1">
+            <img src="/park-visitation-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <h1 className="text-lg font-bold tracking-tight text-white m-0">Post-COVID Park Visitations</h1>
           </div>
-          <p className="text-slate-500 text-xs">Visitation telemetry powered by DuckDB & PMTiles</p>
+          <p className="text-slate-500 text-xs">Pre/Post COVID visitation data powered by DuckDB and Safegraph</p>
         </div>
 
         {/* Search Tabs */}
         <div className="flex border-b border-white/10">
           <button
             onClick={() => { setSearchTab('park'); setSearchTerm(''); setSearchResults([]); }}
-            className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer ${
-              searchTab === 'park' ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/5' : 'text-slate-300 hover:text-white'
-            }`}
+            className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer ${searchTab === 'park' ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/5' : 'text-slate-300 hover:text-white'
+              }`}
           >
             <TreePine className="w-4 h-4" /> Park Search
           </button>
           <button
             onClick={() => { setSearchTab('county'); setSearchTerm(''); setSearchResults([]); }}
-            className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer ${
-              searchTab === 'county' ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/5' : 'text-slate-300 hover:text-white'
-            }`}
+            className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer ${searchTab === 'county' ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-500/5' : 'text-slate-300 hover:text-white'
+              }`}
           >
             <Building2 className="w-4 h-4" /> County Search
           </button>
@@ -205,8 +203,8 @@ function App() {
                 !isDbReady
                   ? 'Loading DuckDB engine...'
                   : searchTab === 'park'
-                  ? 'Search parks (e.g. Yellowstone, Central Park)...'
-                  : 'Search counties (e.g. Los Angeles, Cook)...'
+                    ? 'Search parks (e.g. Yellowstone, Central Park)...'
+                    : 'Search counties (e.g. Los Angeles, Cook)...'
               }
               disabled={!isDbReady}
               className="w-full bg-black/40 border border-slate-700/50 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all placeholder-slate-500 text-slate-100 shadow-inner disabled:opacity-50"
@@ -247,17 +245,15 @@ function App() {
           <div className="px-4 pt-2 flex gap-2">
             <button
               onClick={() => setChartMode('line')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
-                chartMode === 'line' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${chartMode === 'line' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                }`}
             >
               Timeline
             </button>
             <button
               onClick={() => setChartMode('overlay')}
-              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
-                chartMode === 'overlay' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${chartMode === 'overlay' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                }`}
             >
               Pre/Post COVID
             </button>
@@ -295,9 +291,8 @@ function App() {
                   </div>
                   <div className="bg-black/40 rounded-xl p-3 border border-white/5">
                     <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Δ Change</div>
-                    <div className={`text-base font-bold ${
-                      (displayPctChange ?? 0) > 0 ? 'text-emerald-400' : (displayPctChange ?? 0) < 0 ? 'text-rose-400' : 'text-slate-200'
-                    }`}>
+                    <div className={`text-base font-bold ${(displayPctChange ?? 0) > 0 ? 'text-emerald-400' : (displayPctChange ?? 0) < 0 ? 'text-rose-400' : 'text-slate-200'
+                      }`}>
                       {displayPctChange != null
                         ? `${(Number(displayPctChange) * 100).toFixed(1)}%`
                         : 'N/A'}
@@ -313,7 +308,7 @@ function App() {
             </>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
-              <MapPin className="w-12 h-12 mb-4 text-slate-700" />
+              <img src="/park-visitation-logo.png" alt="Logo" className="w-20 h-20 mb-6 opacity-20 grayscale" />
               <h3 className="font-semibold text-slate-400 mb-1">No Location Selected</h3>
               <p className="text-sm">Search for a park or county, or click the map.</p>
               {!isDbReady && (
@@ -336,9 +331,14 @@ function App() {
       {/* Main Map Area */}
       <div className="flex-1 relative">
         <Suspense fallback={
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-slate-400 gap-4">
-            <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-            <p className="text-sm font-medium">Initializing Map Engine...</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-slate-400 gap-6">
+            <div className="relative">
+              <img src="/park-visitation-logo.png" alt="Logo" className="w-24 h-24 animate-pulse" />
+              <div className="absolute -bottom-2 -right-2">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            </div>
+            <p className="text-sm font-medium tracking-widest uppercase opacity-50">Initializing Map Engine</p>
           </div>
         }>
           <InteractiveMap

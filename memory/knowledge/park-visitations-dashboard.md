@@ -15,6 +15,7 @@
 ## Current Map UX
 - Counties are always visible as a background choropleth; there is no separate county-only map mode anymore.
 - Map controls are now park-only overlay filters: `all`, `national`, `state`.
+- `All` is now the default selected filter on first load.
 - County selection still exists through county search and county polygon click, but it only outlines/selects the county and hydrates the sidebar; it does not switch overlays.
 - Park search and park clicks still drive the detail panel as before.
 
@@ -26,30 +27,35 @@
 - `counties_selected_outline`: highlighted selected county line keyed by `county_fips`.
 
 ## Park Layer Stack
-- `parks_all`, `parks_national`, and `parks_state` are circle layers sourced from `labeled_change.pmtiles`.
+- The isolated `National` and `State` modes still use dedicated `parks_national` and `parks_state` circle layers plus `parks_national_labels`.
+- `All` mode no longer uses a single `parks_all` layer. It uses a staged layer stack sourced from `labeled_change.pmtiles`: `all_national`, `all_state`, `all_local_top`, `all_local_major`, `all_local_regional`, `all_local_dense`, `all_local_full`.
+- Local POIs in `All` mode are derived as `national === 0 && state === 0` and are revealed by `visitor_counts_postcovid` thresholds rather than geography.
+- The current `All`-mode zoom reveal is:
+  - `< 4`: national only
+  - `4` to `< 5`: national + state
+  - `5` to `< 6`: locals with `visitor_counts_postcovid >= 4000`
+  - `6` to `< 7`: locals with `visitor_counts_postcovid >= 1000`
+  - `7` to `< 8`: locals with `visitor_counts_postcovid >= 450`
+  - `8` to `< 9`: locals with `visitor_counts_postcovid >= 250`
+  - `>= 9`: all locals
 - Park circles should remain on the same percent-change ramp as the counties, not a separate categorical color.
 - Park circles were intentionally pushed to `circle-opacity: 0.96` with a dark stroke (`#020617`) so they read as foreground POIs over the county background.
 - The latest intended render order is counties first, parks second, labels after, so park dots sit above county polygons.
+- `Map.tsx` now centralizes park layer visibility through `PARK_LAYER_VISIBILITY_MAP` and a `syncParkLayerVisibility()` helper so the correct overlay is applied both on initial map load and on filter toggles.
 
 ## Interaction Model
 - Click resolution should happen through a single `queryRenderedFeatures()` path with explicit priority.
-- Park features must win over county polygons when both are under the cursor.
+- Park features must win over county polygons when both are under the cursor. The clickable park list now includes every `all_*` circle layer plus the dedicated `parks_national` and `parks_state` layers.
 - County clicks should only fire when no park feature is hit.
 - County selection should preserve the current park overlay filter.
 
 ## Verification State
-- `npm run build` in `dashboard-rebuild` passed after the county polygon work, the always-on county overlay revision, and the latest park-ramp/layer-order fix.
-- Browser smoke tests earlier in the session verified: counties visible by default, county button removed, Los Angeles county search hydrates sidebar, and console is clean.
-- The very last change was a follow-up fix after user feedback: restore park dots to the percent-change ramp and ensure counties do not render above dots. Build passed after that fix, but a fresh dense-city visual QA pass was still the next best action.
+- `npm run build` in `dashboard-rebuild` passed after the default-`All` conversion, the multi-band `All` reveal implementation, and the follow-up change that delayed full local density until zoom 9.
+- Browser verification confirmed: `All` is active by default, zoom 3 shows national-only, zoom 4 shows national + state, local density ramps in through zooms 5/6/7/8, full local density waits until zoom 9+, filter toggles switch cleanly, and the console remains warning-free aside from the longstanding Vite chunk-size warning during build.
 
 ## Dirty Worktree Snapshot
 - Modified:
-  - `dashboard-rebuild/public/data/county_change.pmtiles`
   - `dashboard-rebuild/src/App.tsx`
   - `dashboard-rebuild/src/components/Map.tsx`
-  - `dashboard-rebuild/src/lib/duckdb.ts`
-  - `data-pipeline/package.json`
 - Untracked:
-  - `dashboard-rebuild/src/lib/county.ts`
-  - `data-pipeline/build_county_tiles.mjs`
-  - `data-pipeline/county_change.pmtiles`
+  - `park-visitation-logo.png`
