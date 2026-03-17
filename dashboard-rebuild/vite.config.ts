@@ -14,4 +14,17 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'maplibre': ['maplibre-gl'],
+          'duckdb': ['@duckdb/duckdb-wasm'],
+          'recharts': ['recharts'],
+          'vendor': ['react', 'react-dom', 'lucide-react'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+  }
 })
