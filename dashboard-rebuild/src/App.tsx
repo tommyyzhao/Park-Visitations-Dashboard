@@ -337,9 +337,13 @@ function App() {
 
         {/* Footer */}
         <div className="p-3 border-t border-white/10 text-[10px] text-slate-500 text-center flex items-center justify-center gap-3 bg-black/20">
-          <span>MapLibre GL · PMTiles · DuckDB-WASM</span>
-          <span className="w-1 h-1 rounded-full bg-slate-600"></span>
-          <span className={isDbReady ? 'text-emerald-400' : 'text-amber-400'}>{isDbReady ? '● Online' : '○ Loading'}</span>
+          <div className="flex items-center gap-4">
+            <img src="/psu_logo.png" alt="Penn State Logo" className="w-12 h-12 object-contain" />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-white uppercase tracking-widest">Penn State</span>
+              <p className="text-[11px] text-slate-400 font-medium leading-tight">Recreation, Park, and Tourism Management</p>
+            </div>
+          </div>
         </div>
       </div>
 
