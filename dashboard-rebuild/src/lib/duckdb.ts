@@ -1,4 +1,5 @@
 import * as duckdb from '@duckdb/duckdb-wasm';
+import { normalizeCountyFips } from './county';
 
 let db: duckdb.AsyncDuckDB | null = null;
 let conn: duckdb.AsyncDuckDBConnection | null = null;
@@ -67,6 +68,11 @@ function cleanRow(row: any): any {
       cleaned[key] = value;
     }
   }
+
+  if (cleaned.county_fips != null) {
+    cleaned.county_fips = normalizeCountyFips(cleaned.county_fips);
+  }
+
   return cleaned;
 }
 

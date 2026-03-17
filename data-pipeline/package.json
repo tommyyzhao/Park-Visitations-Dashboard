@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build:county-tiles": "node build_county_tiles.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

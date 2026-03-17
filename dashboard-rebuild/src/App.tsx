@@ -2,16 +2,28 @@ import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react
 const InteractiveMap = lazy(() => import('./components/Map'));
 import VisitationChart from './components/VisitationChart';
 import { queryParks, queryCounties, queryParkById, queryCountyByName, queryCountyByFips, initDB } from './lib/duckdb';
+import { normalizeCountyFips } from './lib/county';
 import { Search, MapPin, Navigation2, TreePine, Building2, Loader2 } from 'lucide-react';
 
 type SearchTab = 'park' | 'county';
 type ChartMode = 'line' | 'overlay';
+type ParkLayerFilter = 'all' | 'national' | 'state';
+type SelectedKind = 'park' | 'county' | null;
+
+function inferSelectedKind(item: any): SelectedKind {
+  if (item?.safegraph_place_id) return 'park';
+  if (item?.county_fips || item?.county || item?.county_ascii) return 'county';
+  return null;
+}
 
 function App() {
   const [searchTab, setSearchTab] = useState<SearchTab>('park');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedPark, setSelectedPark] = useState<any | null>(null);
+  const [selectedKind, setSelectedKind] = useState<SelectedKind>(null);
+  const [selectedCountyFips, setSelectedCountyFips] = useState<string | null>(null);
+  const [parkLayer, setParkLayer] = useState<ParkLayerFilter>('national');
   const [isSearching, setIsSearching] = useState(false);
   const [isDbReady, setIsDbReady] = useState(false);
   const [chartMode, setChartMode] = useState<ChartMode>('line');
@@ -44,12 +56,29 @@ function App() {
   }, [searchTerm, searchTab, isDbReady]);
 
   const handleSelectPark = useCallback((park: any) => {
+    const kind = inferSelectedKind(park);
+    const countyFips = normalizeCountyFips(park?.county_fips);
+
+    setSelectedKind(kind);
+    setSelectedCountyFips(kind === 'county' ? countyFips : null);
     setSelectedPark(park);
     setSearchTerm('');
     setSearchResults([]);
   }, []);
 
   const handleMapSelect = useCallback(async (props: any) => {
+    const isPark = Boolean(props.safegraph_place_id);
+    const isCounty = !isPark && Boolean(props.county_fips || props.county || props.county_ascii);
+    const normalizedCountyFips = normalizeCountyFips(props.county_fips);
+
+    if (isCounty) {
+      setSelectedKind('county');
+      setSelectedCountyFips(normalizedCountyFips);
+    } else {
+      setSelectedKind(isPark ? 'park' : null);
+      setSelectedCountyFips(null);
+    }
+
     // Check if props has the date keys (time series data)
     const hasTimeSeries = Object.keys(props).some(k => /^\d{4}/.test(k) || k.includes('/'));
     
@@ -63,17 +92,20 @@ function App() {
       } else if (props.county_fips) {
         const full = await queryCountyByFips(props.county_fips);
         if (full) {
+          setSelectedCountyFips(normalizeCountyFips(full.county_fips));
           setSelectedPark(full);
           return;
         }
       } else if (props.county || props.county_ascii) {
         const full = await queryCountyByName(props.county || props.county_ascii, props.state || props.state_name || props.region);
         if (full) {
+          setSelectedCountyFips(normalizeCountyFips(full.county_fips));
           setSelectedPark(full);
           return;
         }
       }
     }
+
     setSelectedPark(props);
   }, []);
 
@@ -282,8 +314,8 @@ function App() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
               <MapPin className="w-12 h-12 mb-4 text-slate-700" />
-              <h3 className="font-semibold text-slate-400 mb-1">No Park Selected</h3>
-              <p className="text-sm">Search for a park or county, or click any point on the map.</p>
+              <h3 className="font-semibold text-slate-400 mb-1">No Location Selected</h3>
+              <p className="text-sm">Search for a park or county, or click the map.</p>
               {!isDbReady && (
                 <div className="mt-4 flex items-center gap-2 text-xs text-blue-400">
                   <Loader2 className="w-3 h-3 animate-spin" /> Initializing DuckDB engine...
@@ -310,8 +342,12 @@ function App() {
           </div>
         }>
           <InteractiveMap
+            parkLayer={parkLayer}
+            onParkLayerChange={setParkLayer}
             onSelectedLocation={handleMapSelect}
+            selectedCountyFips={selectedCountyFips}
             selectedCoordinates={coords}
+            selectedKind={selectedKind}
           />
         </Suspense>
       </div>

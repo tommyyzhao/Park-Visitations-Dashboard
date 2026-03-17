@@ -27,3 +27,13 @@ Replacing the traditional MERN stack (MongoDB + Express + React + Mapbox) for an
 - **Popup XSS Injections**: DuckDB and MapLibre inherently decouple data models from front-end safety. Data parsed from unstructured `.parquet` files and displayed via `.setHTML()` natively opens dangerous XSS vectors. Hand-built string escapers are mandatory prior to template insertion.
 - **Map Instance Re-renders (React)**: React components instantiating imperative classes (`new maplibregl.Map()`) will break if passed un-memoized nested arrays or objects. Event parameters (like coordinates) bound to `useEffect` arrays must be strictly memoized using `useMemo` to prevent infinite imperative map transitions on benign re-renders (like user typing).
 - **Hybrid Telemetry Fetch (PMTiles -> Parquet)**: Vector tiles (.pmtiles) should only carry rendering attributes (color, size, name). For deep analysis (time-series graphs), use the map click event as a "pointer" to trigger a precision `SELECT * FROM ... WHERE id = ...` query against the local DuckDB instance. This keeps the initial map payloads lightweight while maintaining full analytical depth.
+
+## Boundary Joins
+- **Boundary Vintage Matching**: County and tract boundaries must match the era of the telemetry IDs. Newer Census vintages can invalidate older county-equivalent FIPS (for example, Connecticut county removal and Alaska county-equivalent changes), so build pipelines should choose the matching historical vintage rather than assuming "latest" is correct.
+- **ID Normalization**: Normalize geographic identifiers like county FIPS to zero-padded strings before any join, PMTiles property write, or React selection state. This prevents mismatches between numeric Parquet values and string tile properties.
+- **Fail Loudly**: Boundary join pipelines should fail when telemetry IDs do not map to geometry instead of silently dropping regions. Missing geography is much harder to notice later in a choropleth than a hard build failure.
+
+## Overlay Interaction Patterns
+- **Layer Order Matters**: In MapLibre, later-added layers render on top. If polygon choropleths are meant to sit behind point POIs, add polygons first and point layers later.
+- **Single Click Resolver**: Once multiple interactive layers overlap, do not rely on separate per-layer click handlers. Resolve clicks with one `queryRenderedFeatures()` pass and explicit precedence order so foreground targets win deterministically.
+- **Soft Glow Approximation**: Native MapLibre fill layers do not provide a true per-polygon radial gradient. The practical approximation is a translucent fill plus one or more blurred line halos derived from the same data ramp.

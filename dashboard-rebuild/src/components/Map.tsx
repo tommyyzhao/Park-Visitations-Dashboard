@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
 
 let pmtilesInitialized = false;
+const PARK_DOT_STROKE = '#020617';
 
 function escapeHtml(unsafe: string | number | undefined | null) {
   if (unsafe == null) return '';
@@ -15,18 +16,35 @@ function escapeHtml(unsafe: string | number | undefined | null) {
     .replace(/'/g, "&#039;");
 }
 
-type LayerFilter = 'all' | 'national' | 'state' | 'county';
+type SelectedKind = 'park' | 'county' | null;
+type ParkLayerFilter = 'all' | 'national' | 'state';
 
 interface MapProps {
+  parkLayer: ParkLayerFilter;
+  onParkLayerChange?: (layer: ParkLayerFilter) => void;
   onSelectedLocation?: (properties: any) => void;
+  selectedCountyFips?: string | null;
   selectedCoordinates?: [number, number];
+  selectedKind?: SelectedKind;
 }
 
-export default function InteractiveMap({ onSelectedLocation, selectedCoordinates }: MapProps) {
+function formatMetric(value: unknown) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 'N/A';
+  return numericValue.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+export default function InteractiveMap({
+  parkLayer,
+  onParkLayerChange,
+  onSelectedLocation,
+  selectedCoordinates,
+  selectedCountyFips,
+  selectedKind,
+}: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const activeLocationHandler = useRef(onSelectedLocation);
-  const [activeLayer, setActiveLayer] = useState<LayerFilter>('national');
   const [zoom, setZoom] = useState(4);
 
   useEffect(() => {
@@ -48,6 +66,86 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
       });
     }
 
+    // County base geometry
+    map.addLayer({
+      id: 'counties_fill_base',
+      type: 'fill',
+      source: 'county_data',
+      'source-layer': 'county_change',
+      minzoom: 0,
+      paint: {
+        'fill-color': '#101827',
+        'fill-opacity': 0.18
+      },
+      layout: { 'visibility': 'visible' }
+    });
+
+    map.addLayer({
+      id: 'counties_fill_data',
+      type: 'fill',
+      source: 'county_data',
+      'source-layer': 'county_change',
+      minzoom: 0,
+      filter: ['==', ['to-number', ['get', 'has_data']], 1],
+      paint: {
+        'fill-color': [
+          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
+          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
+        ],
+        'fill-opacity': 0.44
+      },
+      layout: { 'visibility': 'visible' }
+    });
+
+    // Soft county halo to give the polygons a subtle inverse-glow edge
+    map.addLayer({
+      id: 'counties_glow',
+      type: 'line',
+      source: 'county_data',
+      'source-layer': 'county_change',
+      minzoom: 0,
+      filter: ['==', ['to-number', ['get', 'has_data']], 1],
+      paint: {
+        'line-color': [
+          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
+          -1, 'rgba(197, 27, 125, 0.55)', 0, 'rgba(247, 247, 247, 0.45)', 1, 'rgba(77, 146, 33, 0.55)'
+        ],
+        'line-width': 5,
+        'line-blur': 4,
+        'line-opacity': 0.45
+      },
+      layout: { 'visibility': 'visible' }
+    });
+
+    map.addLayer({
+      id: 'counties_outline',
+      type: 'line',
+      source: 'county_data',
+      'source-layer': 'county_change',
+      minzoom: 0,
+      paint: {
+        'line-color': '#0f172a',
+        'line-width': 0.8,
+        'line-opacity': 0.6
+      },
+      layout: { 'visibility': 'visible' }
+    });
+
+    map.addLayer({
+      id: 'counties_selected_outline',
+      type: 'line',
+      source: 'county_data',
+      'source-layer': 'county_change',
+      minzoom: 0,
+      filter: ['==', ['get', 'county_fips'], '__none__'],
+      paint: {
+        'line-color': '#f59e0b',
+        'line-width': 2.4,
+        'line-opacity': 1
+      },
+      layout: { 'visibility': 'visible' }
+    });
+
     // All Parks layer
     map.addLayer({
       id: 'parks_all',
@@ -57,16 +155,16 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
       minzoom: 7,
       paint: {
         'circle-radius': [
-          'interpolate', ['linear'], ['get', 'visitor_counts_postcovid'],
+          'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
           1, 3, 10, 4, 100, 5, 1000, 6, 10000, 8
         ],
         'circle-color': [
-          'interpolate', ['linear'], ['get', 'percent_change'],
+          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
           -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
         ],
-        'circle-opacity': 0.85,
-        'circle-stroke-width': 0.5,
-        'circle-stroke-color': '#000'
+        'circle-opacity': 0.96,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': PARK_DOT_STROKE
       },
       layout: { 'visibility': 'none' }
     });
@@ -77,20 +175,20 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
       type: 'circle',
       source: 'parks_data',
       'source-layer': 'labeled_change',
-      filter: ['==', ['get', 'national'], 1],
+      filter: ['==', ['to-number', ['get', 'national']], 1],
       minzoom: 3,
       paint: {
         'circle-radius': [
-          'interpolate', ['linear'], ['get', 'visitor_counts_postcovid'],
+          'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
           1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
         ],
         'circle-color': [
-          'interpolate', ['linear'], ['get', 'percent_change'],
+          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
           -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
         ],
-        'circle-opacity': 0.85,
-        'circle-stroke-width': 0.5,
-        'circle-stroke-color': '#000'
+        'circle-opacity': 0.96,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': PARK_DOT_STROKE
       },
       layout: { 'visibility': 'visible' }
     });
@@ -101,43 +199,20 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
       type: 'circle',
       source: 'parks_data',
       'source-layer': 'labeled_change',
-      filter: ['==', ['get', 'state'], 1],
+      filter: ['==', ['to-number', ['get', 'state']], 1],
       minzoom: 3,
       paint: {
         'circle-radius': [
-          'interpolate', ['linear'], ['get', 'visitor_counts_postcovid'],
+          'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
           1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
         ],
         'circle-color': [
-          'interpolate', ['linear'], ['get', 'percent_change'],
+          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
           -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
         ],
-        'circle-opacity': 0.85,
-        'circle-stroke-width': 0.5,
-        'circle-stroke-color': '#000'
-      },
-      layout: { 'visibility': 'none' }
-    });
-
-    // County aggregated layer
-    map.addLayer({
-      id: 'parks_county',
-      type: 'circle',
-      source: 'county_data',
-      'source-layer': 'county_change',
-      minzoom: 3,
-      paint: {
-        'circle-radius': [
-          'interpolate', ['linear'], ['get', 'visitor_counts_postcovid'],
-          1, 2, 10, 6, 100, 12, 1000, 24, 10000, 32
-        ],
-        'circle-color': [
-          'interpolate', ['linear'], ['get', 'percent_change'],
-          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
-        ],
-        'circle-opacity': 0.85,
+        'circle-opacity': 0.96,
         'circle-stroke-width': 1,
-        'circle-stroke-color': '#Af5d04'
+        'circle-stroke-color': PARK_DOT_STROKE
       },
       layout: { 'visibility': 'none' }
     });
@@ -148,7 +223,7 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
       type: 'symbol',
       source: 'parks_data',
       'source-layer': 'labeled_change',
-      filter: ['==', ['get', 'national'], 1],
+      filter: ['==', ['to-number', ['get', 'national']], 1],
       minzoom: 6,
       layout: {
         'text-field': ['get', 'location'],
@@ -164,53 +239,63 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
       }
     });
 
-    // Click handlers for each layer type
-    const clickableLayers = ['parks_all', 'parks_national', 'parks_state', 'parks_county'];
-    clickableLayers.forEach(layerId => {
-      map.on('click', layerId, (e: any) => {
-        if (!e.features || e.features.length === 0) return;
-        const props = e.features[0].properties;
-        if (activeLocationHandler.current) activeLocationHandler.current(props);
+    const parkLayers = ['parks_all', 'parks_national', 'parks_state'];
+    const clickableLayers = [...parkLayers, 'counties_fill_data'];
 
-        const name = escapeHtml(props.location || props.county || 'Unknown');
-        const city = escapeHtml(props.city || props.state || '');
-        const region = escapeHtml(props.region || '');
-        const pre = props.visitor_counts_precovid ?? 'N/A';
-        const post = props.visitor_counts_postcovid ?? 'N/A';
-        const pctRaw = props.percent_change;
-        const pct = pctRaw != null ? (pctRaw * 100).toFixed(1) : 'N/A';
-        const pctColor = pctRaw > 0 ? '#10b981' : pctRaw < 0 ? '#f43f5e' : '#94a3b8';
+    const showPopup = (props: any, lngLat: maplibregl.LngLat) => {
+      const name = escapeHtml(props.location || props.county || props.county_ascii || 'Unknown');
+      const place = escapeHtml(props.city || props.state_name || props.state || '');
+      const region = escapeHtml(props.region || '');
+      const pre = formatMetric(props.visitor_counts_precovid);
+      const post = formatMetric(props.visitor_counts_postcovid);
+      const pctRaw = props.percent_change != null ? Number(props.percent_change) : null;
+      const pct = pctRaw != null ? (pctRaw * 100).toFixed(1) : 'N/A';
+      const pctColor = pctRaw == null ? '#94a3b8' : pctRaw > 0 ? '#10b981' : pctRaw < 0 ? '#f43f5e' : '#94a3b8';
 
-        new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
-          .setLngLat(e.lngLat)
-          .setHTML(`
-            <div style="font-family:system-ui;padding:8px;color:#f1f5f9;">
-              <div style="font-weight:700;font-size:16px;margin-bottom:4px;">${name}</div>
-              <div style="color:#94a3b8;font-size:12px;margin-bottom:10px;">${city}${region ? ', ' + region : ''}</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <div style="background:#1e293b;padding:8px;border-radius:8px;">
-                  <div style="color:#94a3b8;font-size:10px;text-transform:uppercase;">Pre-COVID</div>
-                  <div style="font-weight:700;">${pre}</div>
-                </div>
-                <div style="background:#1e293b;padding:8px;border-radius:8px;">
-                  <div style="color:#94a3b8;font-size:10px;text-transform:uppercase;">Post-COVID</div>
-                  <div style="font-weight:700;">${post}</div>
-                </div>
+      new maplibregl.Popup({ closeButton: true, maxWidth: '300px' })
+        .setLngLat(lngLat)
+        .setHTML(`
+          <div style="font-family:system-ui;padding:8px;color:#f1f5f9;">
+            <div style="font-weight:700;font-size:16px;margin-bottom:4px;">${name}</div>
+            <div style="color:#94a3b8;font-size:12px;margin-bottom:10px;">${place}${region ? ', ' + region : ''}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="background:#1e293b;padding:8px;border-radius:8px;">
+                <div style="color:#94a3b8;font-size:10px;text-transform:uppercase;">Pre-COVID</div>
+                <div style="font-weight:700;">${pre}</div>
               </div>
-              <div style="text-align:center;margin-top:8px;font-weight:700;color:${pctColor};font-size:14px;">
-                Δ ${pct}%
+              <div style="background:#1e293b;padding:8px;border-radius:8px;">
+                <div style="color:#94a3b8;font-size:10px;text-transform:uppercase;">Post-COVID</div>
+                <div style="font-weight:700;">${post}</div>
               </div>
             </div>
-          `)
-          .addTo(map);
-      });
+            <div style="text-align:center;margin-top:8px;font-weight:700;color:${pctColor};font-size:14px;">
+              Δ ${pct}%
+            </div>
+          </div>
+        `)
+        .addTo(map);
+    };
 
-      map.on('mouseenter', layerId, () => {
-        map.getCanvas().style.cursor = 'pointer';
-      });
-      map.on('mouseleave', layerId, () => {
-        map.getCanvas().style.cursor = '';
-      });
+    map.on('click', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: clickableLayers });
+      if (!features.length) return;
+
+      const parkFeature = features.find((feature) => parkLayers.includes(feature.layer.id));
+      const feature = parkFeature ?? features.find((candidate) => candidate.layer.id === 'counties_fill_data');
+      if (!feature) return;
+
+      const props = feature.properties;
+      if (activeLocationHandler.current) activeLocationHandler.current(props);
+      showPopup(props, e.lngLat);
+    });
+
+    map.on('mousemove', (e) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: clickableLayers });
+      map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : '';
+    });
+
+    map.on('mouseout', () => {
+      map.getCanvas().style.cursor = '';
     });
   }, []);
 
@@ -247,49 +332,65 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle layer toggle
+  // Handle park overlay toggle
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
 
-    const layerMap: Record<LayerFilter, string[]> = {
+    const layerMap: Record<ParkLayerFilter, string[]> = {
       all: ['parks_all'],
       national: ['parks_national', 'parks_national_labels'],
       state: ['parks_state'],
-      county: ['parks_county'],
     };
 
-    // Hide all first
+    // Hide all park overlays first
     Object.values(layerMap).flat().forEach(id => {
       if (map.getLayer(id)) {
         map.setLayoutProperty(id, 'visibility', 'none');
       }
     });
 
-    // Show selected
-    (layerMap[activeLayer] || []).forEach(id => {
+    // County layers are always on
+    ['counties_fill_base', 'counties_fill_data', 'counties_glow', 'counties_outline', 'counties_selected_outline'].forEach(id => {
       if (map.getLayer(id)) {
         map.setLayoutProperty(id, 'visibility', 'visible');
       }
     });
-  }, [activeLayer]);
+
+    // Show selected park overlay
+    (layerMap[parkLayer] || []).forEach(id => {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', 'visible');
+      }
+    });
+  }, [parkLayer]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded() || !map.getLayer('counties_selected_outline')) return;
+
+    if (selectedCountyFips) {
+      map.setFilter('counties_selected_outline', ['==', ['get', 'county_fips'], selectedCountyFips]);
+    } else {
+      map.setFilter('counties_selected_outline', ['==', ['get', 'county_fips'], '__none__']);
+    }
+  }, [selectedCountyFips]);
 
   // Handle fly-to
   useEffect(() => {
     if (mapRef.current && selectedCoordinates) {
       mapRef.current.flyTo({
         center: selectedCoordinates,
-        zoom: 12,
+        zoom: selectedKind === 'county' ? 7 : 12,
         essential: true
       });
     }
-  }, [selectedCoordinates]);
+  }, [selectedCoordinates, selectedKind]);
 
-  const layerButtons: { label: string; value: LayerFilter }[] = [
+  const layerButtons: { label: string; value: ParkLayerFilter }[] = [
     { label: 'All', value: 'all' },
     { label: 'National', value: 'national' },
     { label: 'State', value: 'state' },
-    { label: 'County', value: 'county' },
   ];
 
   return (
@@ -306,9 +407,9 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
         {layerButtons.map(btn => (
           <button
             key={btn.value}
-            onClick={() => setActiveLayer(btn.value)}
+            onClick={() => onParkLayerChange?.(btn.value)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-              activeLayer === btn.value
+              parkLayer === btn.value
                 ? 'bg-blue-500 text-white shadow-lg'
                 : 'text-slate-300 hover:bg-white/10'
             }`}
@@ -329,7 +430,7 @@ export default function InteractiveMap({ onSelectedLocation, selectedCoordinates
           <span>0%</span>
           <span>+100%</span>
         </div>
-        <div className="text-[10px] md:text-xs text-slate-400 mt-1.5">Circle size = post-COVID visitation volume</div>
+        <div className="text-[10px] md:text-xs text-slate-400 mt-1.5">County fill = percent change; park dots overlay visitation sites</div>
       </div>
     </div>
   );
