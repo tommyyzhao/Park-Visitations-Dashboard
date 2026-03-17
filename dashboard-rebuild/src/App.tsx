@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import InteractiveMap from './components/Map';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+const InteractiveMap = lazy(() => import('./components/Map'));
 import VisitationChart from './components/VisitationChart';
-import { queryParks, queryCounties, initDB } from './lib/duckdb';
+import { queryParks, queryCounties, queryParkById, queryCountyByName, queryCountyByFips, initDB } from './lib/duckdb';
 import { Search, MapPin, Navigation2, TreePine, Building2, Loader2 } from 'lucide-react';
 
 type SearchTab = 'park' | 'county';
@@ -49,7 +49,31 @@ function App() {
     setSearchResults([]);
   }, []);
 
-  const handleMapSelect = useCallback((props: any) => {
+  const handleMapSelect = useCallback(async (props: any) => {
+    // Check if props has the date keys (time series data)
+    const hasTimeSeries = Object.keys(props).some(k => /^\d{4}/.test(k) || k.includes('/'));
+    
+    if (!hasTimeSeries) {
+      if (props.safegraph_place_id) {
+        const full = await queryParkById(props.safegraph_place_id);
+        if (full) {
+          setSelectedPark(full);
+          return;
+        }
+      } else if (props.county_fips) {
+        const full = await queryCountyByFips(props.county_fips);
+        if (full) {
+          setSelectedPark(full);
+          return;
+        }
+      } else if (props.county || props.county_ascii) {
+        const full = await queryCountyByName(props.county || props.county_ascii, props.state || props.state_name || props.region);
+        if (full) {
+          setSelectedPark(full);
+          return;
+        }
+      }
+    }
     setSelectedPark(props);
   }, []);
 
@@ -279,10 +303,17 @@ function App() {
 
       {/* Main Map Area */}
       <div className="flex-1 relative">
-        <InteractiveMap
-          onSelectedLocation={handleMapSelect}
-          selectedCoordinates={coords}
-        />
+        <Suspense fallback={
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 text-slate-400 gap-4">
+            <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+            <p className="text-sm font-medium">Initializing Map Engine...</p>
+          </div>
+        }>
+          <InteractiveMap
+            onSelectedLocation={handleMapSelect}
+            selectedCoordinates={coords}
+          />
+        </Suspense>
       </div>
     </div>
   );
