@@ -18,6 +18,9 @@
 - `All` is now the default selected filter on first load.
 - County selection still exists through county search and county polygon click, but it only outlines/selects the county and hydrates the sidebar; it does not switch overlays.
 - Park search and park clicks still drive the detail panel as before.
+- The current redesign direction is explicitly map-first and dark-mode-first, with the map remaining the primary canvas on both desktop and mobile.
+- Desktop uses a fixed left insight dock that is flush to the left screen edge with no outer gap or container radius.
+- Mobile no longer uses the old 50/50 split. It uses a flush bottom drawer over a full-screen map plus separate floating action buttons for search and legend.
 
 ## County Layer Stack
 - `counties_fill_base`: muted background fill for all counties.
@@ -51,7 +54,8 @@
 
 ## Hover Preview Architecture
 - The old MapLibre popup HTML path has been retired from the active map in favor of a React-rendered hover card inside `dashboard-rebuild/src/components/Map.tsx`.
-- Hover previews are desktop-only (`(hover: hover) and (pointer: fine)`), preview-only, and must never mutate persistent sidebar selection, fly-to state, or overlay filters.
+- Hover previews are desktop-only and preview-only, and must never mutate persistent sidebar selection, fly-to state, or overlay filters.
+- The desktop hover gate should not rely on a single strict media query. Hybrid desktop hardware can misreport `(hover: hover) and (pointer: fine)`, so the active detector now falls back to broader desktop signals such as `any-hover`, `pointer: fine`, or no-touch detection.
 - Hover hit testing uses the same `queryRenderedFeatures()` strategy as click, but now splits into:
   - persistent `click` selection routed upstream through `onSelectedLocation`
   - temporary hover preview state local to `Map.tsx`
@@ -61,6 +65,7 @@
   - county base fill third
 - Counties with no telemetry are hoverable because interaction now includes both `counties_fill_data` and `counties_fill_base`.
 - Hover intent is delayed by `140ms`, and previews clear on map leave and move start to avoid flicker and stale overlays.
+- If desktop hover previews vanish, inspect the capability gate before chasing the card renderer or layer hit testing.
 
 ## Hover Preview Data Model
 - Hover preview shaping lives in `dashboard-rebuild/src/lib/hoverPreview.ts`.
@@ -77,6 +82,44 @@
 - Park POIs do not have real monthly series in the repo, but the sidebar chart now reuses `synthesizeParkTrend(...)` when a selected park has aggregate metrics but no date-keyed series.
 - For park POIs with valid pre/post aggregate values, the sidebar chart should never show the empty “No visitation telemetry available” state.
 - The chart empty state should now be reserved for locations that truly have neither real time series nor usable aggregate metrics.
+- The selected-state sidebar is now chart-first: compact hero summary, inline `View` toggle, chart directly under the summary, and metrics condensed into a smaller follow-up section so the chart stays above the fold.
+- The mobile drawer now uses stage-aware swipe collapse from the top handle/header, with a movement threshold so taps do not accidentally change sheet stage.
+- On mobile, selecting a county or park should immediately expand the drawer into the full detail state so the user lands directly on the hero metrics and chart.
+- Mobile search is no longer intended to live inside the drawer; it is a separate map action that opens a popup search surface.
+- The mobile drawer should not repeat desktop-style branding chrome such as the `Park Visitations` title or logo.
+
+## Redesign Theme System
+- The current visual direction uses Penn State-inspired dark UI colors:
+  - `Nittany Navy` `#001E44` as the deepest structural background
+  - `Beaver Blue` `#1E407C` for controls, borders, and interactive UI chrome
+  - `Pugh Blue` `#96BEE6` as a highlight/focus accent
+- Blue is reserved for interface chrome, not positive-vs-negative analytical encoding.
+- Analytical semantics now use:
+  - positive / gain: green
+  - neutral: light gray
+  - negative / loss: warm coral-red
+- The county choropleth was intentionally restored to a softer semi-translucent treatment rather than an opaque heatmap.
+
+## Current Mobile Architecture
+- The active mobile shell is composed of:
+  - full-screen map
+  - top-left search action
+  - top-left legend action
+  - bottom flush drawer with staged heights
+- The outer mobile drawer wrapper must remain non-interactive outside the visible sheet so it does not steal touch/pan gestures from the map.
+- The inner mobile drawer must remain scrollable with its own `overflow-y-auto` content region.
+- Mobile safe-area handling matters for the drawer, floating buttons, and legend surfaces.
+
+## Current Desktop Architecture
+- The desktop left dock should feel permanently anchored to the viewport edge, not like a floating card.
+- The Penn State attribution / footer treatment is now a slim fixed footer strip rather than a branded card inside the dock.
+- The desktop legend sits away from the left dock, currently bottom-right, to avoid overlap on smaller desktop widths.
+- The desktop legend’s `Loss / Neutral / Gain` labels are intended to span the full legend width.
+
+## Redesign Regressions / Lessons
+- A transparent full-height mobile sheet wrapper previously intercepted pointer events and broke map pan/scroll. When mobile map interaction fails, inspect overlay hitboxes before debugging MapLibre itself.
+- Headless browser screenshots of the map can fail silently when WebGL is unavailable. In this repo, reliable visual QA required headless Chrome with software WebGL / SwiftShader.
+- `System ready` and similar generic status chrome were judged as wasted space in the redesign; mobile and desktop should prioritize analytical content density over ornamental status labels.
 
 ## Runtime Data Asset Caveat
 - The active app loads Parquet assets from `dashboard-rebuild/public/data`, not from `data-pipeline/` and not from `dashboard-rebuild/public/`.
@@ -93,13 +136,21 @@
   - no-data counties still get a hover card
   - park click/search selection repopulates sidebar metrics once the runtime `public/data/park_pois.parquet` asset is refreshed
   - a selected park with aggregate-only telemetry (for example `Lamar Valley`) now shows summary metrics plus a plausible sidebar graph instead of the chart empty state
+- During the redesign pass, `npm run build` continued to pass after the mobile drawer, search popup, legend relocation, and color-system changes.
+- Visual QA during the redesign relied on rendered desktop/mobile screenshots in headless Chrome with SwiftShader because normal headless WebGL crashed in `InteractiveMap`.
+- The latest verified redesign state includes:
+  - mobile map interaction restored after fixing overlay hitboxes
+  - mobile search moved out of the drawer
+  - mobile drawer flush to screen edges
+  - desktop dock flush left with no outer radius/gap
+  - positive metrics rendered green instead of blue
+  - desktop legend relocated away from the dock
 
-## Dirty Worktree Snapshot
-- Modified:
-  - `dashboard-rebuild/public/data/park_pois.parquet`
+## Active File Focus
+- The main redesign/edit loop has recently centered on:
   - `dashboard-rebuild/src/App.tsx`
   - `dashboard-rebuild/src/components/Map.tsx`
-- Untracked:
+  - `dashboard-rebuild/src/components/VisitationChart.tsx`
   - `dashboard-rebuild/src/components/HoverPreviewCard.tsx`
-  - `dashboard-rebuild/src/lib/hoverPreview.ts`
-  - `park-visitation-logo.png`
+  - `dashboard-rebuild/src/index.css`
+- `dashboard-rebuild/src/lib/duckdb.ts` still carries pre-existing lint debt and was not the focus of the redesign work.

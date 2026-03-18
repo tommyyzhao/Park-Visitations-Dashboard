@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { Layers3 } from 'lucide-react';
 import { Protocol } from 'pmtiles';
 import HoverPreviewCard from './HoverPreviewCard';
 import { queryCountyByFips } from '../lib/duckdb';
@@ -15,8 +16,16 @@ import {
 } from '../lib/hoverPreview';
 
 let pmtilesInitialized = false;
-const PARK_DOT_STROKE = '#020617';
+const PARK_DOT_STROKE = '#04101f';
 const HOVER_INTENT_MS = 140;
+const DIVERGING_COLOR_RAMP = [
+  'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
+  -1, '#ff7a59', 0, '#eef2f5', 1, '#55c271',
+] as unknown as maplibregl.ExpressionSpecification;
+const DIVERGING_GLOW_RAMP = [
+  'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
+  -1, 'rgba(255, 122, 89, 0.42)', 0, 'rgba(238, 242, 245, 0.3)', 1, 'rgba(85, 194, 113, 0.42)',
+] as unknown as maplibregl.ExpressionSpecification;
 
 type SelectedKind = 'park' | 'county' | null;
 type ParkLayerFilter = 'all' | 'national' | 'state';
@@ -71,10 +80,7 @@ const FOCUSED_MODE_RADIUS = [
   1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
 ];
 
-const PARK_COLOR_RAMP = [
-  'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
-  -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
-];
+const PARK_COLOR_RAMP = DIVERGING_COLOR_RAMP;
 
 function createParkCircleLayer({
   id,
@@ -133,6 +139,7 @@ function createLocalFilter(minVisitors?: number) {
 }
 
 interface MapProps {
+  isMobile?: boolean;
   parkLayer: ParkLayerFilter;
   onParkLayerChange?: (layer: ParkLayerFilter) => void;
   onSelectedLocation?: (properties: Record<string, unknown>) => void;
@@ -148,12 +155,18 @@ interface HoverCandidate {
   position: { x: number; y: number };
 }
 
-function isHoverCapablePointer() {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
-  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+function canUseHoverPreview(isMobile: boolean) {
+  if (isMobile || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+
+  // Some desktop-class devices report a coarse primary pointer even though they
+  // still support hover via a mouse or trackpad. Allow those desktops to opt in.
+  return window.matchMedia('(any-hover: hover)').matches
+    || window.matchMedia('(pointer: fine)').matches
+    || navigator.maxTouchPoints === 0;
 }
 
 export default function InteractiveMap({
+  isMobile = false,
   parkLayer,
   onParkLayerChange,
   onSelectedLocation,
@@ -174,7 +187,8 @@ export default function InteractiveMap({
   const [zoom, setZoom] = useState(4);
   const [hoverPreview, setHoverPreview] = useState<HoverPreviewData | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
-  const canHover = useMemo(() => isHoverCapablePointer(), []);
+  const [mobileLegendOpen, setMobileLegendOpen] = useState(false);
+  const canHover = useMemo(() => canUseHoverPreview(isMobile), [isMobile]);
 
   useEffect(() => {
     activeLocationHandler.current = onSelectedLocation;
@@ -360,7 +374,7 @@ export default function InteractiveMap({
       'source-layer': 'county_change',
       minzoom: 0,
       paint: {
-        'fill-color': '#101827',
+        'fill-color': '#071728',
         'fill-opacity': 0.18
       },
       layout: { 'visibility': 'visible' }
@@ -374,10 +388,7 @@ export default function InteractiveMap({
       minzoom: 0,
       filter: ['==', ['to-number', ['get', 'has_data']], 1],
       paint: {
-        'fill-color': [
-          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
-          -1, '#c51b7d', 0, '#f7f7f7', 1, '#4d9221'
-        ],
+        'fill-color': DIVERGING_COLOR_RAMP,
         'fill-opacity': 0.44
       },
       layout: { 'visibility': 'visible' }
@@ -391,10 +402,7 @@ export default function InteractiveMap({
       minzoom: 0,
       filter: ['==', ['to-number', ['get', 'has_data']], 1],
       paint: {
-        'line-color': [
-          'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
-          -1, 'rgba(197, 27, 125, 0.55)', 0, 'rgba(247, 247, 247, 0.45)', 1, 'rgba(77, 146, 33, 0.55)'
-        ],
+        'line-color': DIVERGING_GLOW_RAMP,
         'line-width': 5,
         'line-blur': 4,
         'line-opacity': 0.45
@@ -409,7 +417,7 @@ export default function InteractiveMap({
       'source-layer': 'county_change',
       minzoom: 0,
       paint: {
-        'line-color': '#0f172a',
+        'line-color': 'rgba(3, 16, 31, 0.95)',
         'line-width': 0.8,
         'line-opacity': 0.6
       },
@@ -424,8 +432,8 @@ export default function InteractiveMap({
       minzoom: 0,
       filter: ['==', ['get', 'county_fips'], '__none__'],
       paint: {
-        'line-color': '#f59e0b',
-        'line-width': 2.4,
+        'line-color': '#96bee6',
+        'line-width': 2.8,
         'line-opacity': 1
       },
       layout: { 'visibility': 'visible' }
@@ -513,8 +521,8 @@ export default function InteractiveMap({
         'visibility': 'visible'
       },
       paint: {
-        'text-color': '#e2e8f0',
-        'text-halo-color': '#0f172a',
+        'text-color': '#ecf5ff',
+        'text-halo-color': '#03101f',
         'text-halo-width': 1.5
       }
     });
@@ -672,19 +680,21 @@ export default function InteractiveMap({
         />
       ) : null}
 
-      <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-md text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-white/10 hidden md:block">
+      <div className="absolute left-4 top-4 z-10 hidden rounded-full border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(4,17,31,0.68)] px-3 py-1.5 text-xs text-[color:#adc6e4] shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl md:block">
         Zoom: {zoom}
       </div>
 
-      <div className="absolute mx-4 md:mx-0 top-4 md:right-4 z-10 flex flex-wrap gap-1 bg-black/60 backdrop-blur-md rounded-xl p-1.5 border border-white/10 shadow-2xl justify-center">
+      <div
+        className={`absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex flex-wrap justify-center gap-1 rounded-[1.1rem] border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(4,17,31,0.72)] p-1.5 shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl ${isMobile ? 'max-w-[calc(100vw-1.5rem)]' : ''}`}
+      >
         {layerButtons.map(btn => (
           <button
             key={btn.value}
             onClick={() => onParkLayerChange?.(btn.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+            className={`min-h-10 rounded-[0.95rem] px-3 py-1.5 text-xs font-medium transition-all ${
               parkLayer === btn.value
-                ? 'bg-blue-500 text-white shadow-lg'
-                : 'text-slate-300 hover:bg-white/10'
+                ? 'bg-[linear-gradient(135deg,#1e407c,#96bee6)] text-white shadow-[0_12px_24px_rgba(30,64,124,0.34)]'
+                : 'text-[color:#adc6e4] hover:bg-[color:rgba(150,190,230,0.08)]'
             }`}
           >
             {btn.label}
@@ -692,18 +702,62 @@ export default function InteractiveMap({
         ))}
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 bg-black/60 backdrop-blur-md rounded-xl px-5 py-3 border border-white/10 shadow-2xl text-center">
-        <div className="text-xs md:text-sm text-slate-200 mb-2 font-medium">% Change in Avg Monthly Visitations (Pre vs. Post COVID-19)</div>
-        <div className="h-3 w-64 mx-auto rounded-full" style={{
-          background: 'linear-gradient(to right, #c51b7d, #f7f7f7, #4d9221)'
-        }} />
-        <div className="flex justify-between text-[10px] text-slate-400 mt-1 w-64 mx-auto">
-          <span>-100%</span>
-          <span>0%</span>
-          <span>+100%</span>
+      {isMobile ? (
+        <div className="absolute left-3 top-[calc(env(safe-area-inset-top)+4.5rem)] z-10">
+          <button
+            onClick={() => setMobileLegendOpen((current) => !current)}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(4,17,31,0.74)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl"
+          >
+            <Layers3 className="h-4 w-4 text-[color:#96bee6]" />
+            Legend
+          </button>
+
+          {mobileLegendOpen ? (
+            <div className="mt-2 w-[min(18rem,calc(100vw-1.5rem))] rounded-[1.2rem] border border-[color:rgba(150,190,230,0.14)] bg-[linear-gradient(180deg,rgba(8,24,46,0.94),rgba(4,14,28,0.94))] px-4 py-4 text-left text-xs text-[color:#adc6e4] shadow-[0_20px_45px_rgba(0,8,22,0.4)] backdrop-blur-xl">
+              <div className="mb-3 flex items-center gap-2">
+                <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 rounded-full border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(255,255,255,0.03)] p-1" />
+                <div>
+                  <div className="font-display text-sm font-semibold text-[color:#ecf5ff]">Park Visitations</div>
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-[color:#7e98b7]">Map legend</div>
+                </div>
+              </div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[color:#7e98b7]">
+                Percent change in average monthly visits
+              </div>
+              <div
+                className="mt-3 h-2.5 rounded-full"
+                style={{ background: 'linear-gradient(to right, #ff7a59, #eef2f5, #55c271)' }}
+              />
+              <div className="mt-2 flex justify-between text-[10px] text-[color:#7e98b7]">
+                <span>Loss</span>
+                <span>Neutral</span>
+                <span>Gain</span>
+              </div>
+              <div className="mt-3 text-[11px] leading-5 text-[color:#adc6e4]">
+                County fills show change; park dots overlay point-based visitation sites.
+              </div>
+            </div>
+          ) : null}
         </div>
-        <div className="text-[10px] md:text-xs text-slate-400 mt-1.5">County fill = percent change; park dots overlay visitation sites</div>
-      </div>
+      ) : (
+        <div className="absolute bottom-6 right-6 z-10 w-[18rem] rounded-[1.1rem] border border-[color:rgba(150,190,230,0.16)] bg-[linear-gradient(180deg,rgba(8,24,46,0.92),rgba(4,14,28,0.92))] px-4 py-3 text-left shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[color:#7e98b7]">
+            Percent change in average monthly visits
+          </div>
+          <div
+            className="h-2.5 w-full rounded-full"
+            style={{ background: 'linear-gradient(to right, #ff7a59, #eef2f5, #55c271)' }}
+          />
+          <div className="mt-2 flex w-full justify-between text-[10px] text-[color:#7e98b7]">
+            <span>Loss</span>
+            <span>Neutral</span>
+            <span>Gain</span>
+          </div>
+          <div className="mt-2 text-[11px] text-[color:#adc6e4]">
+            County fills show change; park dots overlay visitation sites.
+          </div>
+        </div>
+      )}
     </div>
   );
 }

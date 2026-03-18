@@ -24,40 +24,40 @@ function formatDelta(value: number | null) {
 function getTone(delta: number | null) {
   if (delta == null || !Number.isFinite(delta)) {
     return {
-      line: '#94a3b8',
-      fill: 'rgba(148, 163, 184, 0.16)',
-      topGlow: 'from-slate-300/70',
-      badge: 'bg-slate-400/10 text-slate-200 border-slate-300/15',
-      deltaText: 'text-slate-200',
+      line: '#d9e0e8',
+      fill: 'rgba(217, 224, 232, 0.16)',
+      topGlow: 'from-[color:rgba(217,224,232,0.72)]',
+      badge: 'bg-[color:rgba(217,224,232,0.12)] text-[color:#e5f1ff] border-[color:rgba(217,224,232,0.22)]',
+      deltaText: 'text-[color:#ecf5ff]',
     };
   }
 
   if (delta > 0) {
     return {
-      line: '#10b981',
-      fill: 'rgba(16, 185, 129, 0.16)',
-      topGlow: 'from-emerald-400/80',
-      badge: 'bg-emerald-400/10 text-emerald-200 border-emerald-300/15',
-      deltaText: 'text-emerald-300',
+      line: '#55c271',
+      fill: 'rgba(85, 194, 113, 0.16)',
+      topGlow: 'from-[color:rgba(85,194,113,0.8)]',
+      badge: 'bg-[color:rgba(85,194,113,0.12)] text-[color:#def8e3] border-[color:rgba(85,194,113,0.24)]',
+      deltaText: 'text-[color:#55c271]',
     };
   }
 
   if (delta < 0) {
     return {
-      line: '#f43f5e',
-      fill: 'rgba(244, 63, 94, 0.16)',
-      topGlow: 'from-rose-400/80',
-      badge: 'bg-rose-400/10 text-rose-200 border-rose-300/15',
-      deltaText: 'text-rose-300',
+      line: '#ff7a59',
+      fill: 'rgba(255, 122, 89, 0.16)',
+      topGlow: 'from-[color:rgba(255,122,89,0.8)]',
+      badge: 'bg-[color:rgba(255,122,89,0.12)] text-[color:#ffd9cf] border-[color:rgba(255,122,89,0.22)]',
+      deltaText: 'text-[color:#ff7a59]',
     };
   }
 
   return {
-    line: '#94a3b8',
-    fill: 'rgba(148, 163, 184, 0.16)',
-    topGlow: 'from-slate-300/70',
-    badge: 'bg-slate-400/10 text-slate-200 border-slate-300/15',
-    deltaText: 'text-slate-200',
+    line: '#d9e0e8',
+    fill: 'rgba(217, 224, 232, 0.16)',
+    topGlow: 'from-[color:rgba(217,224,232,0.72)]',
+    badge: 'bg-[color:rgba(217,224,232,0.12)] text-[color:#e5f1ff] border-[color:rgba(217,224,232,0.22)]',
+    deltaText: 'text-[color:#ecf5ff]',
   };
 }
 
@@ -134,8 +134,8 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
   const [cardSize, setCardSize] = useState({ width: 312, height: 238 });
   const tone = getTone(preview.delta);
   const typeBadge = preview.kind === 'park'
-    ? 'bg-sky-400/10 text-sky-200 border-sky-300/15'
-    : 'bg-amber-400/10 text-amber-200 border-amber-300/15';
+    ? 'bg-[color:rgba(150,190,230,0.12)] text-[color:#dff2ff] border-[color:rgba(150,190,230,0.2)]'
+    : 'bg-[color:rgba(30,64,124,0.22)] text-[color:#d5e8ff] border-[color:rgba(150,190,230,0.2)]';
 
   useLayoutEffect(() => {
     if (!cardRef.current) return;
@@ -154,13 +154,13 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
   return (
     <div
       ref={cardRef}
-      className="pointer-events-none absolute z-20 w-[312px]"
+      className="pointer-events-none absolute z-20 w-[min(312px,calc(100vw-24px))]"
       style={{ left, top }}
       aria-hidden="true"
     >
-      <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-slate-900/88 shadow-[0_24px_70px_rgba(2,6,23,0.55)] backdrop-blur-2xl">
+      <div className="relative overflow-hidden rounded-[22px] border border-[color:rgba(150,190,230,0.14)] bg-[linear-gradient(180deg,rgba(8,24,46,0.92),rgba(4,14,28,0.94))] shadow-[0_24px_70px_rgba(2,6,23,0.55)] backdrop-blur-2xl">
         <div className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r ${tone.topGlow} via-white/20 to-transparent`} />
-        <div className="pointer-events-none absolute -right-10 top-0 h-24 w-24 rounded-full bg-white/5 blur-3xl" />
+        <div className="pointer-events-none absolute -right-10 top-0 h-24 w-24 rounded-full bg-[color:rgba(150,190,230,0.08)] blur-3xl" />
 
         <div className="space-y-4 p-4">
           <div className="space-y-2">
@@ -171,7 +171,7 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
                 </span>
                 <h3 className="mt-2 text-sm font-semibold leading-snug text-white">{preview.title}</h3>
                 {preview.subtitle ? (
-                  <p className="mt-1 text-xs text-slate-400">{preview.subtitle}</p>
+                  <p className="mt-1 text-xs text-[color:#adc6e4]">{preview.subtitle}</p>
                 ) : null}
               </div>
 
@@ -182,21 +182,21 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-2xl border border-white/5 bg-black/30 px-3 py-2.5">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">Pre-COVID</div>
-              <div className="mt-1 text-sm font-semibold text-slate-100">{formatMetric(preview.pre)}</div>
+            <div className="rounded-2xl border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(255,255,255,0.03)] px-3 py-2.5">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Pre-COVID</div>
+              <div className="mt-1 text-sm font-semibold text-[color:#ecf5ff]">{formatMetric(preview.pre)}</div>
             </div>
-            <div className="rounded-2xl border border-white/5 bg-black/30 px-3 py-2.5">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">Post-COVID</div>
-              <div className="mt-1 text-sm font-semibold text-slate-100">{formatMetric(preview.post)}</div>
+            <div className="rounded-2xl border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(255,255,255,0.03)] px-3 py-2.5">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Post-COVID</div>
+              <div className="mt-1 text-sm font-semibold text-[color:#ecf5ff]">{formatMetric(preview.post)}</div>
             </div>
-            <div className="rounded-2xl border border-white/5 bg-black/30 px-3 py-2.5">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">Delta</div>
+            <div className="rounded-2xl border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(255,255,255,0.03)] px-3 py-2.5">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Delta</div>
               <div className={`mt-1 text-sm font-semibold ${tone.deltaText}`}>{formatDelta(preview.delta)}</div>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[20px] border border-white/6 bg-black/25">
+          <div className="overflow-hidden rounded-[20px] border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(255,255,255,0.025)]">
             {preview.trendPoints.length > 1 ? (
               <MiniTrendSparkline points={preview.trendPoints} stroke={tone.line} fill={tone.fill} />
             ) : (
@@ -205,8 +205,8 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
           </div>
 
           {preview.status ? (
-            <div className="flex items-center gap-2 text-[11px] text-slate-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+            <div className="flex items-center gap-2 text-[11px] text-[color:#adc6e4]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[color:#7e98b7]" />
               <span>{preview.status}</span>
             </div>
           ) : null}

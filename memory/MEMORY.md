@@ -26,3 +26,7 @@
 ## 7. Geographic Boundary Vintage Compatibility
 - **Constraint**: Administrative boundary datasets are not timeless. Using the newest county/tract boundary vintage against older telemetry can silently break joins because FIPS and county-equivalent definitions change over time.
 - **Resolution**: Treat geographic boundary vintages as schema dependencies. Zero-pad stable IDs like county FIPS before joins, select a boundary vintage that matches the telemetry era, and fail the build when telemetry IDs do not match boundary geometry.
+
+## 8. Hybrid Desktop Hover Detection
+- **Constraint**: Browser hover media queries can under-report hover support on desktop-class or hybrid-input hardware.
+- **Resolution**: For desktop-only previews, use a broader capability fallback (`any-hover`, `pointer: fine`, or no-touch detection) instead of relying solely on `(hover: hover) and (pointer: fine)`.
