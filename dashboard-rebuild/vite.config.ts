@@ -20,8 +20,6 @@ export default defineConfig({
         manualChunks: {
           'maplibre': ['maplibre-gl'],
           'duckdb': ['@duckdb/duckdb-wasm'],
-          'recharts': ['recharts'],
-          'vendor': ['react', 'react-dom', 'lucide-react'],
         }
       }
     },
