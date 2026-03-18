@@ -28,7 +28,7 @@ export async function initDB(): Promise<duckdb.AsyncDuckDB> {
     conn = await db.connect();
 
     // Register all parquet files from HTTP so DuckDB can query them
-    const files = ['park_pois.parquet', 'poi_idname.parquet', 'patterns_by_county.parquet'];
+    const files = ['park_pois.parquet', 'patterns_by_county.parquet'];
     for (const file of files) {
       const url = `${window.location.origin}/data/${file}`;
       try {
