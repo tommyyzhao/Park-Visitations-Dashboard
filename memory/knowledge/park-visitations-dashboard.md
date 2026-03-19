@@ -146,6 +146,40 @@
   - positive metrics rendered green instead of blue
   - desktop legend relocated away from the dock
 
+## Hosting / Deployment State (2026-03-18)
+- Hosting target is Cloudflare Pages project `covidparks`.
+- Active custom domain is `covidparks.sidequests.us`, registered at Namecheap and pointed via `CNAME covidparks -> covidparks.pages.dev`.
+- Custom domain validation reached `active` in Cloudflare after DNS propagation.
+- Pages deployment URLs observed during this session included:
+  - `https://d78a24f4.covidparks.pages.dev`
+  - `https://aac6cda9.covidparks.pages.dev`
+- GitHub Actions deploy workflow exists at `.github/workflows/deploy-cloudflare-pages.yml` and expects:
+  - `CLOUDFLARE_API_TOKEN`
+  - `CLOUDFLARE_ACCOUNT_ID`
+- Workflow behavior: on `push` to `main`, run `npm ci`, `npm run build` in `dashboard-rebuild`, then deploy `dist` to Pages with wrangler.
+
+## Runtime Regression + Fix (2026-03-18)
+- Symptom: production site rendered only `<div id="root"></div>` with a console crash:
+  - `TypeError: Cannot read properties of undefined (reading '__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED')`
+  - stack surfaced from the Recharts bundle.
+- Root-cause pattern identified:
+  - manual chunking split introduced a bad production graph between React/ReactDOM/Recharts chunks.
+  - `react-is` resolved to `19.x` while app runtime was React `18.3.1`, increasing compatibility risk.
+- Fix applied in repo:
+  - pinned `react-is` to `18.3.1` in `dashboard-rebuild/package.json`.
+  - removed manual chunk entries for `recharts` and `vendor` in `dashboard-rebuild/vite.config.ts`; retained only `maplibre` and `duckdb` manual chunks.
+  - rebuilt and redeployed to Cloudflare Pages.
+- Post-fix deployment served updated bundle entry (`/assets/index-CQGTJiAX.js`) and removed standalone `recharts-*.js` output from `dist/assets`.
+
+## Open Blocker (Carry Forward)
+- Pending issue: POIs and county tile overlays are not showing on the map in deployed/runtime state.
+- This is now the highest-priority functional regression after deployment stabilization.
+- Next debugging should start in `dashboard-rebuild/src/components/Map.tsx` with layer-source load verification:
+  - confirm PMTiles URLs resolve from `/data/*.pmtiles`.
+  - confirm `addSource` success and `isStyleLoaded()` timing.
+  - confirm expected layer IDs are present and visibility filters are active.
+  - inspect runtime console/network for failed PMTiles range requests and missing tile properties.
+
 ## Active File Focus
 - The main redesign/edit loop has recently centered on:
   - `dashboard-rebuild/src/App.tsx`

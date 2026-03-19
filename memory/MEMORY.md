@@ -30,3 +30,7 @@
 ## 8. Hybrid Desktop Hover Detection
 - **Constraint**: Browser hover media queries can under-report hover support on desktop-class or hybrid-input hardware.
 - **Resolution**: For desktop-only previews, use a broader capability fallback (`any-hover`, `pointer: fine`, or no-touch detection) instead of relying solely on `(hover: hover) and (pointer: fine)`.
+
+## 9. Manual Chunking Safety Boundaries
+- **Constraint**: Forcing interdependent framework libraries into separate Rollup/Vite manual chunks can create circular import timing faults that only appear in production bundles.
+- **Resolution**: Avoid custom manual chunk boundaries between tightly coupled UI/runtime libs (for example React, ReactDOM, and charting stacks that portal into ReactDOM internals). Prefer default chunking unless there is a measured, stable reason to split.
