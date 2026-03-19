@@ -34,9 +34,22 @@ jobs:
         run: npm run build
 
       - name: Deploy to Cloudflare Pages
+        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=covidparks --branch=${{ github.ref_name }}
+          command: pages deploy dashboard-rebuild/dist --project-name=covidparks --branch=${{ github.ref_name }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Print Wrangler Output
+        if: always()
+        env:
+          WRANGLER_STDOUT: ${{ steps.deploy.outputs.command-output }}
+          WRANGLER_STDERR: ${{ steps.deploy.outputs.command-stderr }}
+        run: |
+          echo "Wrangler stdout:"
+          echo "$WRANGLER_STDOUT"
+          echo
+          echo "Wrangler stderr:"
+          echo "$WRANGLER_STDERR"
