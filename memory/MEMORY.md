@@ -34,3 +34,11 @@
 ## 9. Manual Chunking Safety Boundaries
 - **Constraint**: Forcing interdependent framework libraries into separate Rollup/Vite manual chunks can create circular import timing faults that only appear in production bundles.
 - **Resolution**: Avoid custom manual chunk boundaries between tightly coupled UI/runtime libs (for example React, ReactDOM, and charting stacks that portal into ReactDOM internals). Prefer default chunking unless there is a measured, stable reason to split.
+
+## 10. MapLibre Lifecycle Isolation
+- **Constraint**: Imperative MapLibre instances must not be recreated just because a UI control changed layer visibility, selection filters, or other non-camera state.
+- **Resolution**: Mount the map once, keep camera state (`center`, `zoom`, `bearing`, `pitch`) in refs, restore from refs on style load or rehydration, and isolate layer visibility updates in separate effects. Selection-driven `flyTo()` should stay separate from overlay toggles.
+
+## 11. Static Tile Byte Serving
+- **Constraint**: PMTiles over static hosting only work reliably when the host honors HTTP byte-range requests for the archive.
+- **Resolution**: If the host returns `200` for ranged PMTiles requests or omits a usable `Content-Range`/`Content-Length` response, wrap the archive in a buffered in-browser source that fetches once and serves byte slices locally.

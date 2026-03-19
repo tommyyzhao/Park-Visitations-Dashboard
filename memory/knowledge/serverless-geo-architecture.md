@@ -37,3 +37,20 @@ Replacing the traditional MERN stack (MongoDB + Express + React + Mapbox) for an
 - **Layer Order Matters**: In MapLibre, later-added layers render on top. If polygon choropleths are meant to sit behind point POIs, add polygons first and point layers later.
 - **Single Click Resolver**: Once multiple interactive layers overlap, do not rely on separate per-layer click handlers. Resolve clicks with one `queryRenderedFeatures()` pass and explicit precedence order so foreground targets win deterministically.
 - **Soft Glow Approximation**: Native MapLibre fill layers do not provide a true per-polygon radial gradient. The practical approximation is a translucent fill plus one or more blurred line halos derived from the same data ramp.
+
+## React / MapLibre Runtime Notes
+- **Stable Map Mount**: Do not place layer-visibility props in the effect that constructs or destroys a `maplibregl.Map` instance. Mount once, then update visibility and filters in separate effects so camera state survives UI toggles.
+- **Camera Persistence**: Keep `center`, `zoom`, `bearing`, and `pitch` in refs when the UI can rehydrate the map. Restore from those refs on load/reload instead of re-reading default coordinates.
+- **Buffered PMTiles**: For static PMTiles archives that are queried repeatedly, a buffered `Source` wrapper can fetch the archive once, cache the ArrayBuffer, and serve byte slices back to the PMTiles protocol. This avoids repeat network reads when surfaces are toggled often but data does not change.
+
+## PMTiles Hosting Failure Mode
+- **Observed Failure**: Some static hosts return the full archive with `HTTP 200` instead of honoring `Range` requests for `.pmtiles`, which causes the PMTiles client to throw before any map layers render.
+- **Practical Fix**: When a host cannot provide byte serving, use a buffered client-side protocol wrapper or move the archive to storage that returns correct partial-content responses.
+- **Verification Clue**: A failing PMTiles host often surfaces as a console error about missing `content-length` or request size exceeding the server response, even though the file itself is reachable by URL.
+
+## CI / Pages Deploy Gotcha
+- **GitHub Actions Working Directory Trap**: `defaults.run.working-directory` affects only `run:` steps. It does not change the working directory for `uses:` actions such as `cloudflare/wrangler-action`.
+- **Practical Consequence**: A workflow can build inside a subdirectory successfully and then fail deployment by passing a relative artifact path that only exists inside that subdirectory.
+- **Operational Fix**: For Cloudflare Pages direct-upload workflows, pass the explicit repo-root-relative artifact path to wrangler (for example `dashboard-rebuild/dist`) and emit wrangler stdout/stderr as explicit follow-up log steps so failures are diagnosable from CI output.
+- **Monorepo Throughput Rule**: In repos where the deployable app is a tiny subdirectory and most tracked files are unrelated data or pipelines, sparse checkout and path-filtered triggers usually dominate package-manager tweaks. Optimize fetch scope before chasing install-time micro-optimizations.
+- **Wrapper vs Direct CLI**: Convenience actions are not always the fastest path. For Cloudflare Pages, a pinned local `wrangler` invoked directly from the app directory can be both simpler and faster than `wrangler-action`, while keeping behavior explicit and benchmarkable.

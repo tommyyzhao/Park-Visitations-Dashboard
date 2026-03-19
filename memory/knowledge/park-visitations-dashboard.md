@@ -88,6 +88,15 @@
 - Mobile search is no longer intended to live inside the drawer; it is a separate map action that opens a popup search surface.
 - The mobile drawer should not repeat desktop-style branding chrome such as the `Park Visitations` title or logo.
 
+## Latest UI / Map Stability
+- The selected-state surface is intentionally carded again where it helps hierarchy: hero summary card, chart card, and a separate summary metrics section. The chart card owns the toggle context; the chart body should not repeat the park title.
+- The `Timeline / Pre / Post` toggle is now a dedicated segmented control inside the chart card rather than a floating text label.
+- The search button, legend button, and map-layer toggle now share the same translucent overlay treatment so the floating controls read as one system.
+- The mobile drawer can now be minimized by swiping down on the handle/header because drag handling uses a movement threshold and suppresses the follow-up click event.
+- Changing the `All / National / State` toggle now only updates layer visibility. The map camera is stored in refs and restored on load so the toggle does not reset position, zoom, bearing, or pitch.
+- `dashboard-rebuild/src/lib/pmtiles.ts` now provides a buffered PMTiles protocol helper so static archives are fetched once and served from memory slices.
+- Latest committed code snapshot for these UI/camera changes: `0a920c1`.
+
 ## Redesign Theme System
 - The current visual direction uses Penn State-inspired dark UI colors:
   - `Nittany Navy` `#001E44` as the deepest structural background
@@ -137,6 +146,7 @@
   - park click/search selection repopulates sidebar metrics once the runtime `public/data/park_pois.parquet` asset is refreshed
   - a selected park with aggregate-only telemetry (for example `Lamar Valley`) now shows summary metrics plus a plausible sidebar graph instead of the chart empty state
 - During the redesign pass, `npm run build` continued to pass after the mobile drawer, search popup, legend relocation, and color-system changes.
+- `npm run build` also passed after the latest card re-balance, translucency normalization, mobile drawer swipe fix, and map-camera stability refactor.
 - Visual QA during the redesign relied on rendered desktop/mobile screenshots in headless Chrome with SwiftShader because normal headless WebGL crashed in `InteractiveMap`.
 - The latest verified redesign state includes:
   - mobile map interaction restored after fixing overlay hitboxes
@@ -156,7 +166,31 @@
 - GitHub Actions deploy workflow exists at `.github/workflows/deploy-cloudflare-pages.yml` and expects:
   - `CLOUDFLARE_API_TOKEN`
   - `CLOUDFLARE_ACCOUNT_ID`
-- Workflow behavior: on `push` to `main`, run `npm ci`, `npm run build` in `dashboard-rebuild`, then deploy `dist` to Pages with wrangler.
+- Final workflow architecture on `main` is Bun-based and optimized for the monorepo shape:
+  - trigger paths limited to `.github/workflows/deploy-cloudflare-pages.yml` and `dashboard-rebuild/**`
+  - concurrency group `deploy-cloudflare-pages-${{ github.ref }}` with `cancel-in-progress: true`
+  - `actions/checkout@v6` with sparse checkout of only `dashboard-rebuild`
+  - `oven-sh/setup-bun@v2` pinned to `1.3.10`
+  - `bun install --frozen-lockfile`
+  - `bun run build`
+  - direct deploy via `bunx wrangler pages deploy dist --project-name=covidparks --branch=${{ github.ref_name }} --commit-dirty=true`
+- `dashboard-rebuild/package.json` now declares `"packageManager": "bun@1.3.10"` and pins local `wrangler` to `3.90.0`; `dashboard-rebuild/bun.lock` is committed.
+- Critical GitHub Actions nuance remains: `defaults.run.working-directory` does not apply to `uses:` steps. That was the root cause of the earlier broken `wrangler-action` deploy path.
+- Real benchmark conclusion: checkout was the dominant bottleneck, not Vite or npm. The repo tracks `7516` files, with `7437` under `data-pipeline` and only `30` under `dashboard-rebuild`, so sparse checkout was the largest reliable speed win.
+- Live GitHub Actions timings observed:
+  - baseline old workflow run `23279478579`: success in about `2m09s`
+  - Bun + direct wrangler 4 run `23280349786`: success in `50s`
+  - Bun + direct wrangler `3.90.0` run `23280415848`: success in `37s`
+  - final smoke run on the same config `23280450030`: success in `52s`
+- Best observed step breakdown (`23280415848`):
+  - checkout `2s`
+  - setup bun `1s`
+  - install `3s`
+  - build `14s`
+  - deploy `13s`
+- Final CI commits on `main`:
+  - `d327881` `ci: speed up Cloudflare Pages deploy with bun`
+  - `372db90` `ci: benchmark wrangler 3 for pages deploy`
 
 ## Runtime Regression + Fix (2026-03-18)
 - Symptom: production site rendered only `<div id="root"></div>` with a console crash:
@@ -171,14 +205,14 @@
   - rebuilt and redeployed to Cloudflare Pages.
 - Post-fix deployment served updated bundle entry (`/assets/index-CQGTJiAX.js`) and removed standalone `recharts-*.js` output from `dist/assets`.
 
-## Open Blocker (Carry Forward)
-- Pending issue: POIs and county tile overlays are not showing on the map in deployed/runtime state.
-- This is now the highest-priority functional regression after deployment stabilization.
-- Next debugging should start in `dashboard-rebuild/src/components/Map.tsx` with layer-source load verification:
-  - confirm PMTiles URLs resolve from `/data/*.pmtiles`.
-  - confirm `addSource` success and `isStyleLoaded()` timing.
-  - confirm expected layer IDs are present and visibility filters are active.
-  - inspect runtime console/network for failed PMTiles range requests and missing tile properties.
+## Production Runtime Findings
+- The original production tile failure was traced to PMTiles byte serving: the old live bundle used direct PMTiles `FetchSource` against `/data/*.pmtiles`, while the production host responded with full `HTTP 200` bodies to ranged requests instead of reliable partial content.
+- The mitigation is already in repo and should be preserved:
+  - buffered PMTiles protocol/source in `dashboard-rebuild/src/lib/pmtiles.ts`
+  - corresponding `Map.tsx` source/layer registration path
+- During investigation, stale production served `assets/index-CQGTJiAX.js` and lazy-loaded `assets/Map-CFI0blz8.js`, which still contained direct `pmtiles://data/labeled_change.pmtiles` and `pmtiles://data/county_change.pmtiles` fetch paths.
+- The earlier deploy failures likely explain why Pages lagged on the stale artifact before CI was fixed and accelerated.
+- The map camera reset caused by changing `parkLayer` visibility has been fixed in the current code and should not be re-opened unless it regresses.
 
 ## Active File Focus
 - The main redesign/edit loop has recently centered on:
