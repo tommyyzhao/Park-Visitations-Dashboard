@@ -42,3 +42,15 @@
 ## 11. Static Tile Byte Serving
 - **Constraint**: PMTiles over static hosting only work reliably when the host honors HTTP byte-range requests for the archive.
 - **Resolution**: If the host returns `200` for ranged PMTiles requests or omits a usable `Content-Range`/`Content-Length` response, wrap the archive in a buffered in-browser source that fetches once and serves byte slices locally.
+
+## 12. Imperative Map Instances
+- **Constraint**: Imperative MapLibre instances should be mounted once and left intact across non-camera UI changes.
+- **Resolution**: Keep camera state in refs, restore it on style load or rehydration, and isolate layer visibility/filter updates in separate effects so UI toggles do not reset the map.
+
+## 13. GitHub Actions `uses:` Scope
+- **Constraint**: `defaults.run.working-directory` does not apply to `uses:` steps in GitHub Actions.
+- **Resolution**: When a deploy step is an action rather than a shell command, pass explicit repo-root-relative artifact paths and do not assume the action inherits a subdirectory working directory.
+
+## 14. Buffered PMTiles Fallback
+- **Constraint**: Static PMTiles archives may be reachable but still unusable if the host mishandles ranged responses.
+- **Resolution**: Use a buffered client-side PMTiles source/protocol wrapper when the host cannot provide reliable byte serving, rather than relying on direct `pmtiles://` fetches.

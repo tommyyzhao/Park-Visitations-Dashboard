@@ -222,3 +222,22 @@
   - `dashboard-rebuild/src/components/HoverPreviewCard.tsx`
   - `dashboard-rebuild/src/index.css`
 - `dashboard-rebuild/src/lib/duckdb.ts` still carries pre-existing lint debt and was not the focus of the redesign work.
+
+## Copy / Voice State
+- The app copy rewrite is complete and should remain the baseline unless product goals change.
+- Visible language now favors plain analytical phrasing over prototype speak:
+  - `Loading data`, `Loading map`
+  - `All parks / National parks / State parks`
+  - `Average monthly visitation change`
+  - `Below baseline / At baseline / Above baseline`
+  - `Before COVID-19 / After COVID-19`
+  - `Estimated trend / Unavailable`
+- Removed from user-facing UI:
+  - `Ready for selection`
+  - `Layer controls stay on-map`
+  - `DuckDB + PMTiles + MapLibre`
+  - `No telemetry available`
+  - `FIPS` fallback leakage
+  - `Academic project for the National Park Service`
+- The final footer keeps Penn State affiliation but not mission boilerplate.
+- Title/meta are now publication-oriented rather than implementation-oriented.
