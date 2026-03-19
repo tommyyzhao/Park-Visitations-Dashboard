@@ -11,14 +11,12 @@ import {
 } from 'react';
 import {
   Building2,
-  ChevronDown,
-  ChevronUp,
+  Github,
   Loader2,
   MapPin,
   Search,
   Sparkles,
   TreePine,
-  X,
 } from 'lucide-react';
 import VisitationChart from './components/VisitationChart';
 import { APP_COPY, CHART_COPY, HOVER_COPY } from './lib/copy';
@@ -34,6 +32,7 @@ import { normalizeCountyFips } from './lib/county';
 import { synthesizeParkTrend } from './lib/hoverPreview';
 
 const InteractiveMap = lazy(() => import('./components/Map'));
+const GITHUB_REPO_URL = 'https://github.com/tommyyzhao/Park-Visitations-Dashboard';
 
 type SearchTab = 'park' | 'county';
 type ChartMode = 'line' | 'overlay';
@@ -61,8 +60,7 @@ type LocationRecord = Record<string, unknown> & {
 };
 
 const MOBILE_BREAKPOINT = 768;
-const MOBILE_PEEK_HEIGHT = 172;
-const MOBILE_PEEK_HEIGHT_WITH_SELECTION = 208;
+const MOBILE_PEEK_HEIGHT = 132;
 const SHEET_DRAG_THRESHOLD = 36;
 const MOBILE_SHEET_STAGE_ORDER: MobileSheetStage[] = ['full', 'half', 'peek'];
 
@@ -143,7 +141,6 @@ function App() {
   const [isSearching, setIsSearching] = useState(false);
   const [isDbReady, setIsDbReady] = useState(false);
   const [chartMode, setChartMode] = useState<ChartMode>('line');
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(
     typeof window !== 'undefined' ? window.innerHeight : 900,
   );
@@ -199,7 +196,6 @@ function App() {
   useEffect(() => {
     if (!isMobileViewport) {
       setMobileSheetOffset(null);
-      setIsMobileSearchOpen(false);
       return;
     }
 
@@ -214,7 +210,7 @@ function App() {
   }, [viewportHeight]);
 
   const mobileSheetOffsets = useMemo(() => {
-    const peekVisible = selectedPark ? MOBILE_PEEK_HEIGHT_WITH_SELECTION : MOBILE_PEEK_HEIGHT;
+    const peekVisible = MOBILE_PEEK_HEIGHT;
     const halfVisible = clamp(Math.round(viewportHeight * 0.54), 380, mobileSheetHeight - 104);
     const fullVisible = mobileSheetHeight - 18;
 
@@ -223,7 +219,7 @@ function App() {
       half: clamp(mobileSheetHeight - halfVisible, 0, mobileSheetHeight - 92),
       full: clamp(mobileSheetHeight - fullVisible, 0, mobileSheetHeight - 92),
     };
-  }, [mobileSheetHeight, selectedPark, viewportHeight]);
+  }, [mobileSheetHeight, viewportHeight]);
 
   const currentSheetOffset = mobileSheetOffset ?? mobileSheetOffsets[mobileSheetStage];
 
@@ -231,6 +227,13 @@ function App() {
     setMobileSheetStage(stage);
     setMobileSheetOffset(null);
   }, []);
+
+  const handleMobileSearchFocus = useCallback(() => {
+    if (!isMobileViewport) return;
+    if (mobileSheetStage === 'peek') {
+      snapMobileSheet('half');
+    }
+  }, [isMobileViewport, mobileSheetStage, snapMobileSheet]);
 
   const handleSheetPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (!isMobileViewport) return;
@@ -293,7 +296,11 @@ function App() {
       return;
     }
 
-    snapMobileSheet(mobileSheetStage === 'full' ? 'half' : 'full');
+    snapMobileSheet(mobileSheetStage === 'peek'
+      ? 'half'
+      : mobileSheetStage === 'full'
+        ? 'half'
+        : 'full');
   }, [mobileSheetStage, snapMobileSheet]);
 
   const handleSelectPark = useCallback((park: LocationRecord) => {
@@ -309,7 +316,6 @@ function App() {
     if (isMobileViewport) {
       setMobileSheetStage('full');
       setMobileSheetOffset(null);
-      setIsMobileSearchOpen(false);
     }
   }, [isMobileViewport]);
 
@@ -326,6 +332,9 @@ function App() {
       setSelectedCountyFips(null);
     }
 
+    setSearchTerm('');
+    setSearchResults([]);
+
     const hasTimeSeries = Object.keys(props).some((k) => /^\d{4}/.test(k) || k.includes('/'));
 
     if (!hasTimeSeries) {
@@ -335,7 +344,6 @@ function App() {
           setSelectedPark(full);
           if (isMobileViewport) {
             setMobileSheetStage('full');
-            setIsMobileSearchOpen(false);
           }
           return;
         }
@@ -346,7 +354,6 @@ function App() {
           setSelectedPark(full);
           if (isMobileViewport) {
             setMobileSheetStage('full');
-            setIsMobileSearchOpen(false);
           }
           return;
         }
@@ -361,7 +368,6 @@ function App() {
           setSelectedPark(full);
           if (isMobileViewport) {
             setMobileSheetStage('full');
-            setIsMobileSearchOpen(false);
           }
           return;
         }
@@ -371,7 +377,6 @@ function App() {
     setSelectedPark(props);
     if (isMobileViewport) {
       setMobileSheetStage('full');
-      setIsMobileSearchOpen(false);
     }
   }, [isMobileViewport]);
 
@@ -458,6 +463,26 @@ function App() {
         ? HOVER_COPY.belowBaseline
         : HOVER_COPY.atBaseline;
 
+  const renderSearchResultButton = (item: LocationRecord, idx: number) => (
+    <button
+      key={item.safegraph_place_id || `county-${idx}`}
+      className="flex min-h-12 w-full items-start gap-3 rounded-[1rem] px-3 py-3 text-left transition-colors hover:bg-[color:rgba(150,190,230,0.10)]"
+      onClick={() => handleSelectPark(item)}
+    >
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:rgba(150,190,230,0.12)] text-[var(--color-accent)]">
+        <MapPin className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium text-[var(--color-text-primary)]">
+          {searchTab === 'park' ? item.location_name : item.county_ascii}
+        </div>
+        <div className="mt-1 truncate text-xs text-[var(--color-text-secondary)]">
+          {searchTab === 'park' ? `${item.city}, ${item.region}` : item.state_name}
+        </div>
+      </div>
+    </button>
+  );
+
   const renderSearchControls = (compact: boolean) => (
     <div className="grid gap-3">
       <div className="grid grid-cols-2 gap-1.5">
@@ -515,162 +540,229 @@ function App() {
 
         {searchResults.length > 0 ? (
           <div className={`absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 max-h-72 overflow-y-auto rounded-[1rem] bg-[linear-gradient(180deg,rgba(6,18,33,0.94),rgba(4,14,28,0.9))] p-[0.3125rem] shadow-[0_18px_44px_rgba(0,10,24,0.32)] backdrop-blur-2xl ${compact ? 'max-h-[min(50vh,18rem)]' : ''}`}>
-            {searchResults.map((item, idx) => (
-              <button
-                key={item.safegraph_place_id || `county-${idx}`}
-                className="flex min-h-12 w-full items-start gap-3 rounded-[1rem] px-3 py-3 text-left transition-colors hover:bg-[color:rgba(150,190,230,0.10)]"
-                onClick={() => handleSelectPark(item)}
-              >
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:rgba(150,190,230,0.12)] text-[var(--color-accent)]">
-                  <MapPin className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-[var(--color-text-primary)]">
-                    {searchTab === 'park' ? item.location_name : item.county_ascii}
-                  </div>
-                  <div className="mt-1 truncate text-xs text-[var(--color-text-secondary)]">
-                    {searchTab === 'park' ? `${item.city}, ${item.region}` : item.state_name}
-                  </div>
-                </div>
-              </button>
-            ))}
+            {searchResults.map((item, idx) => renderSearchResultButton(item, idx))}
           </div>
         ) : null}
       </div>
     </div>
   );
 
-  const renderInsightSections = (mobile: boolean) => (
-    <>
-        {selectedPark ? (
-          <>
-            <section className="dashboard-hero-card">
-              <div className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-br ${deltaAccent.glow}`} />
-              <div className="relative z-10 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full bg-[color:rgba(150,190,230,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {selectedBadge}
-                </div>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${deltaAccent.badge}`}>
-                  {selectionStatusLabel}
-                </span>
-              </div>
-              <h2 className="mt-2 font-display text-[1.45rem] font-semibold leading-tight tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.72rem]">
-                {parkName}
-              </h2>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:rgba(255,255,255,0.04)] px-2.5 py-1">
-                  <MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                  {selectedSubtitle}
-                </span>
-              </div>
-            </div>
-          </section>
+  const renderMobileSearchControls = () => (
+    <section className="dashboard-panel-section overflow-hidden">
+      <div className="grid gap-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
+          <input
+            type="text"
+            placeholder={
+              !isDbReady
+                ? APP_COPY.dataLoading
+                : APP_COPY.mobileSearchPlaceholder
+            }
+            disabled={!isDbReady}
+            className="min-h-12 w-full rounded-[1rem] bg-[linear-gradient(180deg,rgba(8,22,39,0.88),rgba(7,18,33,0.78))] py-3 pl-11 pr-11 text-sm text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-inset ring-[color:rgba(150,190,230,0.08)] outline-none transition-all placeholder:text-[var(--color-text-tertiary)] focus:ring-[color:rgba(150,190,230,0.18)] focus:shadow-[0_0_0_3px_rgba(150,190,230,0.06)] disabled:cursor-not-allowed disabled:opacity-70"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            onFocus={handleMobileSearchFocus}
+          />
+          {(isSearching || !isDbReady) ? (
+            <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--color-text-tertiary)]" />
+          ) : null}
+        </div>
 
-          <section className="dashboard-panel-section">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-display text-[1rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
-                  {APP_COPY.monthlyVisits}
-                </div>
+        {mobileSheetStage !== 'peek' ? (
+          <>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => {
+                  setSearchTab('park');
+                  setSearchTerm('');
+                  setSearchResults([]);
+                }}
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-[0.9rem] px-3 text-sm font-medium transition-all ${
+                  searchTab === 'park'
+                    ? 'bg-[color:rgba(150,190,230,0.12)] text-[var(--color-text-primary)]'
+                    : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
+                }`}
+              >
+                <TreePine className="h-4 w-4" />
+                {APP_COPY.parkTab}
+              </button>
+              <button
+                onClick={() => {
+                  setSearchTab('county');
+                  setSearchTerm('');
+                  setSearchResults([]);
+                }}
+                className={`flex min-h-11 items-center justify-center gap-2 rounded-[0.9rem] px-3 text-sm font-medium transition-all ${
+                  searchTab === 'county'
+                    ? 'bg-[color:rgba(150,190,230,0.12)] text-[var(--color-text-primary)]'
+                    : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
+                }`}
+              >
+                <Building2 className="h-4 w-4" />
+                {APP_COPY.countyTab}
+              </button>
+            </div>
+
+            {searchResults.length > 0 ? (
+              <div className="max-h-[min(42vh,18rem)] overflow-y-auto rounded-[1rem] bg-[linear-gradient(180deg,rgba(6,18,33,0.94),rgba(4,14,28,0.9))] p-[0.3125rem] shadow-[0_18px_44px_rgba(0,10,24,0.32)] backdrop-blur-2xl">
+                {searchResults.map((item, idx) => renderSearchResultButton(item, idx))}
+              </div>
+            ) : null}
+          </>
+        ) : null}
+      </div>
+    </section>
+  );
+
+  const renderInsightSections = (mobile: boolean) => {
+    if (!selectedPark) {
+      if (mobile) return null;
+
+      return (
+        <section className="dashboard-panel-section overflow-hidden">
+          <div className="relative z-10">
+            <div className="dashboard-section-kicker">{APP_COPY.selectLocationKicker}</div>
+            <h2 className="mt-2 font-display text-[1.55rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
+              {APP_COPY.desktopHeadline}
+            </h2>
+            <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--color-text-secondary)]">
+              {APP_COPY.desktopBody}
+            </p>
+            {!isDbReady ? (
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-[color:rgba(255,122,89,0.08)] px-3 py-2 text-xs text-[var(--color-data-negative)]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {APP_COPY.dataLoading}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      );
+    }
+
+    return (
+      <>
+        <section className="dashboard-hero-card">
+          <div className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-br ${deltaAccent.glow}`} />
+          <div className="relative z-10 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[color:rgba(150,190,230,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
+                <Sparkles className="h-3.5 w-3.5" />
+                {selectedBadge}
+              </div>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${deltaAccent.badge}`}>
+                {selectionStatusLabel}
+              </span>
+            </div>
+            <h2 className="mt-2 font-display text-[1.45rem] font-semibold leading-tight tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.72rem]">
+              {parkName}
+            </h2>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:rgba(255,255,255,0.04)] px-2.5 py-1">
+                <MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                {selectedSubtitle}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className="dashboard-panel-section">
+          <div className={`flex ${mobile ? 'flex-col gap-2' : 'items-start justify-between gap-3'}`}>
+            <div className="min-w-0">
+              <div className="font-display text-[1rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
+                {APP_COPY.monthlyVisits}
+              </div>
+              {mobile ? null : (
                 <div className="mt-1 text-sm text-[var(--color-text-secondary)]">
                   {chartMode === 'line' ? CHART_COPY.monthlyTrend : APP_COPY.beforeAfterByMonth}
                 </div>
-              </div>
-              <div className="min-w-0">
-                <div className="inline-flex gap-1 rounded-[1rem] border border-[color:rgba(150,190,230,0.1)] bg-[color:rgba(255,255,255,0.03)] p-1">
-                  <button
-                    onClick={() => setChartMode('line')}
-                    className={`flex min-h-9 items-center justify-center rounded-[0.85rem] px-3 text-xs font-medium transition-all ${
-                      chartMode === 'line'
-                        ? 'bg-[color:rgba(150,190,230,0.14)] text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-                        : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
-                    }`}
-                  >
-                    {APP_COPY.timeline}
-                  </button>
-                  <button
-                    onClick={() => setChartMode('overlay')}
-                    className={`flex min-h-9 items-center justify-center rounded-[0.85rem] px-3 text-xs font-medium transition-all ${
-                      chartMode === 'overlay'
-                        ? 'bg-[color:rgba(150,190,230,0.14)] text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
-                        : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
-                    }`}
-                  >
-                    {APP_COPY.beforeAfter}
-                  </button>
-                </div>
+              )}
+            </div>
+            <div className={`min-w-0 ${mobile ? 'w-full' : ''}`}>
+              <div className={`gap-1 rounded-[1rem] border border-[color:rgba(150,190,230,0.1)] bg-[color:rgba(255,255,255,0.03)] p-1 ${mobile ? 'grid w-full grid-cols-2' : 'inline-flex'}`}>
+                <button
+                  onClick={() => setChartMode('line')}
+                  className={`flex min-h-9 items-center justify-center rounded-[0.85rem] px-2 text-[11px] font-medium transition-all ${
+                    chartMode === 'line'
+                      ? 'bg-[color:rgba(150,190,230,0.14)] text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                      : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
+                  }`}
+                >
+                  {APP_COPY.timeline}
+                </button>
+                <button
+                  onClick={() => setChartMode('overlay')}
+                  className={`flex min-h-9 items-center justify-center rounded-[0.85rem] px-2 text-[11px] font-medium transition-all ${
+                    chartMode === 'overlay'
+                      ? 'bg-[color:rgba(150,190,230,0.14)] text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                      : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
+                  }`}
+                >
+                  {APP_COPY.beforeAfter}
+                </button>
               </div>
             </div>
-            <div className="mt-3">
-              <VisitationChart
-                compact={mobile}
-                data={visitationData}
-                mode={chartMode}
-              />
-            </div>
-          </section>
-
-            <section className="dashboard-panel-section">
-            <div className="dashboard-section-kicker">{APP_COPY.summary}</div>
-            <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
-              <div className="dashboard-metric-card">
-                <div className="dashboard-metric-label">{APP_COPY.beforeCovid}</div>
-                <div className="dashboard-metric-value">{formatMetric(preCovidValue)}</div>
-                <div className="dashboard-metric-footnote">Monthly average</div>
-              </div>
-              <div className="dashboard-metric-card">
-                <div className="dashboard-metric-label">{APP_COPY.afterCovid}</div>
-                <div className="dashboard-metric-value">{formatMetric(postCovidValue)}</div>
-                <div className="dashboard-metric-footnote">Monthly average</div>
-              </div>
-              <div className="dashboard-metric-card col-span-2 md:col-span-1">
-                <div className="dashboard-metric-label">Change</div>
-                <div className={`dashboard-metric-value ${deltaAccent.text}`}>{formatDelta(pctChangeValue)}</div>
-                <div className="dashboard-metric-footnote">{APP_COPY.changeVsBeforeCovid}</div>
-              </div>
-            </div>
-          </section>
-        </>
-          ) : (
-            <section className="dashboard-panel-section overflow-hidden">
-              <div className="relative z-10">
-                <div className="dashboard-section-kicker">{mobile ? APP_COPY.chooseLocationKicker : APP_COPY.selectLocationKicker}</div>
-                <h2 className="mt-2 font-display text-[1.55rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
-                  {mobile ? APP_COPY.mobileHeadline : APP_COPY.desktopHeadline}
-                </h2>
-                <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--color-text-secondary)]">
-                  {mobile ? APP_COPY.mobileBody : APP_COPY.desktopBody}
-                </p>
-                {!isDbReady ? (
-                  <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-[color:rgba(255,122,89,0.08)] px-3 py-2 text-xs text-[var(--color-data-negative)]">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {APP_COPY.dataLoading}
-                  </div>
-                ) : null}
-              </div>
+          </div>
+          <div className="mt-3">
+            <VisitationChart
+              compact={mobile}
+              data={visitationData}
+              mode={chartMode}
+            />
+          </div>
         </section>
-      )}
-    </>
-  );
+
+        <section className="dashboard-panel-section">
+          <div className="dashboard-section-kicker">{APP_COPY.summary}</div>
+          <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
+            <div className="dashboard-metric-card">
+              <div className="dashboard-metric-label">{APP_COPY.beforeCovid}</div>
+              <div className="dashboard-metric-value">{formatMetric(preCovidValue)}</div>
+              <div className="dashboard-metric-footnote">Monthly average</div>
+            </div>
+            <div className="dashboard-metric-card">
+              <div className="dashboard-metric-label">{APP_COPY.afterCovid}</div>
+              <div className="dashboard-metric-value">{formatMetric(postCovidValue)}</div>
+              <div className="dashboard-metric-footnote">Monthly average</div>
+            </div>
+            <div className="dashboard-metric-card col-span-2 md:col-span-1">
+              <div className="dashboard-metric-label">Change</div>
+              <div className={`dashboard-metric-value ${deltaAccent.text}`}>{formatDelta(pctChangeValue)}</div>
+              <div className="dashboard-metric-footnote">{APP_COPY.changeVsBeforeCovid}</div>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  };
 
   const renderPanelContent = () => (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="relative px-5 pb-2.5 pt-3">
         <div className="relative">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-[1.1rem] bg-[color:rgba(150,190,230,0.08)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-                  <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 object-contain" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-display text-[1.35rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.6rem]">
-                    {APP_COPY.name}
-                  </div>
-                  <p className="mt-1 max-w-[28rem] text-xs leading-5 text-[var(--color-text-secondary)] md:text-[0.82rem]">
-                    {APP_COPY.tagline}
-                  </p>
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-[1.1rem] bg-[color:rgba(150,190,230,0.08)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 object-contain" />
             </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-[1.35rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.6rem]">
+                {APP_COPY.name}
+              </div>
+              <p className="mt-1 max-w-[28rem] text-xs leading-5 text-[var(--color-text-secondary)] md:text-[0.82rem]">
+                {APP_COPY.tagline}
+              </p>
+            </div>
+            <a
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="View the source on GitHub"
+              title="View source on GitHub"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(150,190,230,0.04)] text-[var(--color-text-secondary)] transition-all hover:border-[color:rgba(150,190,230,0.18)] hover:bg-[color:rgba(150,190,230,0.08)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(150,190,230,0.24)]"
+            >
+              <Github className="h-[18px] w-[18px]" />
+            </a>
           </div>
 
           <div className="mt-3">
@@ -696,7 +788,25 @@ function App() {
 
   const renderMobileDrawerContent = () => (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="dashboard-scroll flex-1 min-h-0 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-4 space-y-3">
+      <div
+        className="flex flex-col items-center gap-2 px-5 pb-3 pt-3 touch-none select-none"
+        onPointerCancel={handleSheetPointerEnd}
+        onPointerDown={handleSheetPointerDown}
+        onPointerMove={handleSheetPointerMove}
+        onPointerUp={handleSheetPointerEnd}
+      >
+        <button
+          className="flex h-7 w-24 items-center justify-center rounded-full bg-transparent text-transparent"
+          onClick={handleSheetToggleClick}
+          aria-label="Toggle location drawer"
+          type="button"
+        >
+          <span className="h-1.5 w-16 rounded-full bg-[color:rgba(150,190,230,0.34)]" />
+        </button>
+      </div>
+
+      <div className="dashboard-scroll flex-1 min-h-0 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-1 space-y-3">
+        {renderMobileSearchControls()}
         {renderInsightSections(true)}
       </div>
     </div>
@@ -723,6 +833,7 @@ function App() {
             onParkLayerChange={setParkLayer}
             onSelectedLocation={handleMapSelect}
             parkLayer={parkLayer}
+            repoUrl={GITHUB_REPO_URL}
             selectedCoordinates={coords}
             selectedCountyFips={selectedCountyFips}
             selectedKind={selectedKind}
@@ -736,34 +847,6 @@ function App() {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-50 md:hidden">
-        <button
-          onClick={() => setIsMobileSearchOpen((current) => !current)}
-          className="pointer-events-auto inline-flex min-h-10 items-center gap-2 rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl"
-        >
-          {isMobileSearchOpen ? <X className="h-4 w-4 text-[var(--color-accent)]" /> : <Search className="h-4 w-4 text-[var(--color-accent)]" />}
-          {isMobileSearchOpen ? 'Close search' : 'Search'}
-        </button>
-
-        {isMobileSearchOpen ? (
-          <div className="pointer-events-auto mt-2 w-[calc(100vw-1.5rem)] max-w-sm rounded-[1rem] bg-[color:rgba(4,17,31,0.62)] p-3.5 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--color-text-tertiary)]">{APP_COPY.searchHeading}</div>
-                <div className="mt-1 text-sm text-[var(--color-text-secondary)]">{APP_COPY.searchHelp}</div>
-              </div>
-              <button
-                onClick={() => setIsMobileSearchOpen(false)}
-                className="rounded-full p-2 text-[var(--color-text-secondary)]"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            {renderSearchControls(true)}
-          </div>
-        ) : null}
-      </div>
-
       <div
         className="pointer-events-none absolute inset-x-0 bottom-0 z-40 md:hidden"
         style={{ height: `${mobileSheetHeight}px` }}
@@ -772,22 +855,6 @@ function App() {
           className={`pointer-events-auto relative h-full overflow-hidden rounded-t-[1.65rem] border-t border-[color:rgba(150,190,230,0.06)] bg-[linear-gradient(180deg,rgba(5,18,33,0.97),rgba(4,14,28,0.95))] shadow-[0_-16px_48px_rgba(0,8,22,0.32)] backdrop-blur-2xl ${mobileSheetOffset == null ? 'transition-transform duration-300 ease-out' : ''}`}
           style={{ transform: `translateY(${currentSheetOffset}px)` }}
         >
-          <div
-            className="flex flex-col items-center gap-2 px-5 pb-3 pt-3 touch-none select-none"
-            onPointerCancel={handleSheetPointerEnd}
-            onPointerDown={handleSheetPointerDown}
-            onPointerMove={handleSheetPointerMove}
-            onPointerUp={handleSheetPointerEnd}
-          >
-            <div className="h-1.5 w-16 rounded-full bg-[color:rgba(150,190,230,0.34)]" />
-            <button
-              className="inline-flex items-center gap-2 rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-text-secondary)] shadow-[0_12px_28px_rgba(0,8,22,0.22)] backdrop-blur-xl"
-              onClick={handleSheetToggleClick}
-            >
-              {mobileSheetStage === 'full' ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-              {selectedPark ? parkName : 'Tap map or search'}
-            </button>
-          </div>
           {renderMobileDrawerContent()}
         </div>
       </div>

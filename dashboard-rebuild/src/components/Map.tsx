@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Layers3 } from 'lucide-react';
+import { Github, Layers3 } from 'lucide-react';
 import HoverPreviewCard from './HoverPreviewCard';
 import { queryCountyByFips } from '../lib/duckdb';
 import { normalizeCountyFips } from '../lib/county';
@@ -73,9 +73,17 @@ const PARK_CIRCLE_LAYER_IDS = [
   'parks_state'
 ];
 
+// One label layer per visibility mode keeps the map readable without
+// showing overlapping duplicate labels across modes.
+const PARK_LABEL_LAYER_IDS = [
+  'parks_all_labels',
+  'parks_national_labels',
+  'parks_state_labels',
+];
+
 const PARK_INTERACTIVE_LAYER_IDS = [
   ...PARK_CIRCLE_LAYER_IDS,
-  'parks_national_labels'
+  ...PARK_LABEL_LAYER_IDS,
 ];
 
 const COUNTY_INTERACTIVE_LAYER_IDS = [
@@ -84,22 +92,53 @@ const COUNTY_INTERACTIVE_LAYER_IDS = [
 ];
 
 const PARK_LAYER_VISIBILITY_MAP: Record<ParkLayerFilter, string[]> = {
-  all: [...ALL_MODE_PARK_LAYER_IDS, 'parks_national_labels'],
+  all: [...ALL_MODE_PARK_LAYER_IDS, 'parks_national_labels', 'parks_state_labels', 'parks_all_labels'],
   national: ['parks_national', 'parks_national_labels'],
-  state: ['parks_state'],
+  state: ['parks_state', 'parks_state_labels'],
 };
 
-const ALL_MODE_RADIUS = [
-  'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
-  1, 3, 10, 4, 100, 5, 1000, 6, 10000, 8
-];
-
-const FOCUSED_MODE_RADIUS = [
-  'interpolate', ['linear'], ['to-number', ['get', 'visitor_counts_postcovid']],
-  1, 3, 10, 6, 100, 12, 1000, 24, 10000, 32
-];
+const PARK_VISITOR_COUNT_CAP = 5000;
+const PARK_RADIUS_MIN = 4;
+const PARK_RADIUS_MAX = 13;
+const PARK_RADIUS_MAX_ROOT = Math.sqrt(PARK_VISITOR_COUNT_CAP);
+const PARK_SIZE_LEGEND_VALUES = [50, 250, 1000, PARK_VISITOR_COUNT_CAP] as const;
+const LEGEND_PANEL_CLASS = 'rounded-[1.2rem] bg-[color:rgba(4,17,31,0.62)] px-4 py-4 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl max-h-[calc(100vh-8rem)] overflow-y-auto overscroll-contain';
 
 const PARK_COLOR_RAMP = DIVERGING_COLOR_RAMP;
+const MOBILE_CONTROL_WIDTH_CLASS = 'w-full';
+const MOBILE_CONTROL_SHELL_CLASS = 'rounded-[1.2rem] bg-[color:rgba(4,17,31,0.62)] p-1.5 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl';
+
+function formatLegendValue(value: number, plus = false) {
+  const formatted = value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return plus ? `${formatted}+` : formatted;
+}
+
+function getParkRadius(value: number) {
+  const clampedValue = Math.min(Math.max(value, 0), PARK_VISITOR_COUNT_CAP);
+  const normalized = Math.sqrt(clampedValue / PARK_VISITOR_COUNT_CAP);
+  return PARK_RADIUS_MIN + normalized * (PARK_RADIUS_MAX - PARK_RADIUS_MIN);
+}
+
+function createParkRadiusExpression() {
+  return [
+    'interpolate',
+    ['linear'],
+    [
+      'sqrt',
+      [
+        'min',
+        PARK_VISITOR_COUNT_CAP,
+        ['max', 0, ['coalesce', ['to-number', ['get', 'visitor_counts_postcovid']], 0]],
+      ],
+    ],
+    0,
+    PARK_RADIUS_MIN,
+    PARK_RADIUS_MAX_ROOT,
+    PARK_RADIUS_MAX,
+  ] as unknown as maplibregl.ExpressionSpecification;
+}
+
+const PARK_RADIUS_EXPRESSION = createParkRadiusExpression();
 
 function createParkCircleLayer({
   id,
@@ -127,9 +166,53 @@ function createParkCircleLayer({
       'circle-color': PARK_COLOR_RAMP,
       'circle-opacity': 0.96,
       'circle-stroke-width': 1,
-      'circle-stroke-color': PARK_DOT_STROKE
+      'circle-stroke-color': PARK_DOT_STROKE,
     },
-    layout: { 'visibility': visibility }
+    layout: { 'visibility': visibility },
+  };
+
+  if (filter) {
+    layer.filter = filter;
+  }
+
+  if (maxzoom != null) {
+    layer.maxzoom = maxzoom;
+  }
+
+  return layer as unknown as maplibregl.AddLayerObject;
+}
+
+function createParkLabelLayer({
+  id,
+  filter,
+  minzoom,
+  maxzoom,
+  visibility = 'none',
+}: {
+  id: string;
+  filter?: unknown;
+  minzoom: number;
+  maxzoom?: number;
+  visibility?: 'visible' | 'none';
+}) {
+  const layer: Record<string, unknown> = {
+    id,
+    type: 'symbol',
+    source: 'parks_data',
+    'source-layer': 'labeled_change',
+    minzoom,
+    paint: {
+      'text-color': '#ecf5ff',
+      'text-halo-color': '#03101f',
+      'text-halo-width': 1.5,
+    },
+    layout: {
+      'text-field': ['coalesce', ['get', 'location'], ['get', 'location_name'], ['get', 'name_location']],
+      'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+      'text-radial-offset': 0.8,
+      'text-size': 11,
+      'visibility': visibility,
+    },
   };
 
   if (filter) {
@@ -188,8 +271,10 @@ function summarizeMapRegistration(map: maplibregl.Map) {
       all_local_regional: getLayerState(map, 'all_local_regional'),
       all_local_dense: getLayerState(map, 'all_local_dense'),
       all_local_full: getLayerState(map, 'all_local_full'),
+      parks_all_labels: getLayerState(map, 'parks_all_labels'),
       parks_national: getLayerState(map, 'parks_national'),
       parks_state: getLayerState(map, 'parks_state'),
+      parks_state_labels: getLayerState(map, 'parks_state_labels'),
       parks_national_labels: getLayerState(map, 'parks_national_labels'),
     },
     filters: {
@@ -204,6 +289,7 @@ interface MapProps {
   parkLayer: ParkLayerFilter;
   onParkLayerChange?: (layer: ParkLayerFilter) => void;
   onSelectedLocation?: (properties: Record<string, unknown>) => void;
+  repoUrl: string;
   selectedCountyFips?: string | null;
   selectedCoordinates?: [number, number];
   selectedKind?: SelectedKind;
@@ -231,6 +317,7 @@ export default function InteractiveMap({
   parkLayer,
   onParkLayerChange,
   onSelectedLocation,
+  repoUrl,
   selectedCoordinates,
   selectedCountyFips,
   selectedKind,
@@ -537,14 +624,14 @@ export default function InteractiveMap({
         id: 'all_national',
         filter: ['==', ['to-number', ['get', 'national']], 1],
         minzoom: 0,
-        radius: ALL_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
       map.addLayer(createParkCircleLayer({
         id: 'all_state',
         filter: ['==', ['to-number', ['get', 'state']], 1],
         minzoom: 4,
-        radius: ALL_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
       map.addLayer(createParkCircleLayer({
@@ -552,7 +639,7 @@ export default function InteractiveMap({
         filter: createLocalFilter(4000),
         minzoom: 5,
         maxzoom: 6,
-        radius: ALL_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
       map.addLayer(createParkCircleLayer({
@@ -560,7 +647,7 @@ export default function InteractiveMap({
         filter: createLocalFilter(1000),
         minzoom: 6,
         maxzoom: 7,
-        radius: ALL_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
       map.addLayer(createParkCircleLayer({
@@ -568,7 +655,7 @@ export default function InteractiveMap({
         filter: createLocalFilter(450),
         minzoom: 7,
         maxzoom: 8,
-        radius: ALL_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
       map.addLayer(createParkCircleLayer({
@@ -576,50 +663,47 @@ export default function InteractiveMap({
         filter: createLocalFilter(250),
         minzoom: 8,
         maxzoom: 9,
-        radius: ALL_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
       map.addLayer(createParkCircleLayer({
         id: 'all_local_full',
         filter: createLocalFilter(),
         minzoom: 9,
-        radius: ALL_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
       map.addLayer(createParkCircleLayer({
         id: 'parks_national',
         filter: ['==', ['to-number', ['get', 'national']], 1],
         minzoom: 3,
-        radius: FOCUSED_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
       map.addLayer(createParkCircleLayer({
         id: 'parks_state',
         filter: ['==', ['to-number', ['get', 'state']], 1],
         minzoom: 3,
-        radius: FOCUSED_MODE_RADIUS
+        radius: PARK_RADIUS_EXPRESSION
       }));
 
-      map.addLayer({
+      map.addLayer(createParkLabelLayer({
         id: 'parks_national_labels',
-        type: 'symbol',
-        source: 'parks_data',
-        'source-layer': 'labeled_change',
+        minzoom: 4,
         filter: ['==', ['to-number', ['get', 'national']], 1],
-        minzoom: 6,
-        layout: {
-          'text-field': ['get', 'location'],
-          'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
-          'text-radial-offset': 0.8,
-          'text-size': 11,
-          'visibility': 'visible'
-        },
-        paint: {
-          'text-color': '#ecf5ff',
-          'text-halo-color': '#03101f',
-          'text-halo-width': 1.5
-        }
-      });
+      }));
+
+      map.addLayer(createParkLabelLayer({
+        id: 'parks_state_labels',
+        minzoom: 4,
+        filter: ['==', ['to-number', ['get', 'state']], 1],
+      }));
+
+      map.addLayer(createParkLabelLayer({
+        id: 'parks_all_labels',
+        minzoom: 11,
+        filter: ['all', ['==', ['to-number', ['get', 'national']], 0], ['==', ['to-number', ['get', 'state']], 0]],
+      }));
     } catch (error) {
       console.error('[map] layer/source registration failed', error);
       throw error;
@@ -802,16 +886,88 @@ export default function InteractiveMap({
     }
   }, [selectedCoordinates, selectedKind]);
 
-  const layerButtons: { label: string; value: ParkLayerFilter }[] = [
-    { label: MAP_COPY.allParks, value: 'all' },
-    { label: MAP_COPY.nationalParks, value: 'national' },
-    { label: MAP_COPY.stateParks, value: 'state' },
+  const layerButtons: {
+    desktopLabel: string;
+    mobileLabel: string;
+    value: ParkLayerFilter;
+    ariaLabel: string;
+  }[] = [
+    {
+      desktopLabel: MAP_COPY.allParks,
+      mobileLabel: MAP_COPY.allParksMobile,
+      value: 'all',
+      ariaLabel: MAP_COPY.allParks,
+    },
+    {
+      desktopLabel: 'National',
+      mobileLabel: MAP_COPY.nationalParksMobile,
+      value: 'national',
+      ariaLabel: MAP_COPY.nationalParks,
+    },
+    {
+      desktopLabel: 'State',
+      mobileLabel: MAP_COPY.stateParksMobile,
+      value: 'state',
+      ariaLabel: MAP_COPY.stateParks,
+    },
   ];
 
   const hoverBounds = {
     width: rootContainerRef.current?.clientWidth ?? 0,
     height: rootContainerRef.current?.clientHeight ?? 0,
   };
+
+  const legendContent = (
+    <div className="relative space-y-0 text-left text-xs text-[color:#adc6e4]">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[color:#7e98b7]">
+        {MAP_COPY.legendTitle}
+      </div>
+
+      <div className="absolute left-1/2 top-0 -translate-x-1/2 text-center text-[10px] leading-none text-[color:#8fa6c2] whitespace-nowrap">
+        {MAP_COPY.legendSizeNote}
+      </div>
+
+      <div className="pt-0">
+        <div className="grid grid-cols-4 gap-2">
+          {PARK_SIZE_LEGEND_VALUES.map((value, index) => {
+            const isCap = index === PARK_SIZE_LEGEND_VALUES.length - 1;
+            const radius = getParkRadius(value);
+            const diameter = Math.max(6, Math.round(radius * 2));
+
+            return (
+              <div key={value} className="flex min-w-0 flex-col items-center gap-1 text-center">
+                <div className="flex h-9 items-end justify-center">
+                  <div
+                    aria-hidden="true"
+                    className="shrink-0 rounded-full border border-[color:rgba(4,16,31,0.78)] bg-[color:rgba(236,242,245,0.24)] shadow-[0_8px_18px_rgba(0,8,22,0.18)]"
+                    style={{ width: `${diameter}px`, height: `${diameter}px` }}
+                  />
+                </div>
+                <div className="text-[9px] font-medium leading-none tracking-[0.01em] text-[color:#ecf5ff] whitespace-nowrap">
+                  {formatLegendValue(value, isCap)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2 pt-2">
+        <div className="text-center text-[10px] leading-none text-[color:#8fa6c2]">
+          {MAP_COPY.legendColorNote}
+        </div>
+        <div
+          className="h-2.5 w-full rounded-full"
+          style={{ background: 'linear-gradient(to right, #ff7a59, #eef2f5, #55c271)' }}
+        />
+        <div className="grid w-full grid-cols-3 gap-1 text-[9px] text-[color:#7e98b7]">
+          <span className="text-left">{MAP_COPY.belowBaseline}</span>
+          <span className="text-center">{MAP_COPY.atBaseline}</span>
+          <span className="text-right">{MAP_COPY.aboveBaseline}</span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div ref={rootContainerRef} className="relative w-full h-full">
@@ -825,72 +981,76 @@ export default function InteractiveMap({
         />
       ) : null}
 
-      <div
-        className={`absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex flex-wrap justify-center gap-1 rounded-full bg-[color:rgba(4,17,31,0.62)] p-1.5 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl ${isMobile ? 'max-w-[calc(100vw-1.5rem)]' : ''}`}
-      >
-        {layerButtons.map(btn => (
-          <button
-            key={btn.value}
-            onClick={() => onParkLayerChange?.(btn.value)}
-            className={`min-h-10 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-              parkLayer === btn.value
-                ? 'bg-[color:rgba(150,190,230,0.12)] text-white'
-                : 'text-[color:#adc6e4] hover:bg-[color:rgba(150,190,230,0.08)]'
-            }`}
-          >
-            {btn.label}
-          </button>
-        ))}
-      </div>
-
       {isMobile ? (
-        <div className="absolute left-3 top-[calc(env(safe-area-inset-top)+4.5rem)] z-10">
-          <button
-            onClick={() => setMobileLegendOpen((current) => !current)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl"
-          >
-            <Layers3 className="h-4 w-4 text-[color:#96bee6]" />
-            {MAP_COPY.legendButton}
-          </button>
+        <div className="absolute inset-x-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex flex-col items-stretch gap-2">
+          <div className={`${MOBILE_CONTROL_WIDTH_CLASS} ${MOBILE_CONTROL_SHELL_CLASS}`}>
+            <div className="grid grid-cols-3 gap-1">
+              {layerButtons.map(btn => (
+                <button
+                  key={btn.value}
+                  onClick={() => onParkLayerChange?.(btn.value)}
+                  aria-label={btn.ariaLabel}
+                  className={`flex min-h-10 items-center justify-center rounded-[0.9rem] px-2 text-[11px] font-medium leading-none text-center transition-all ${
+                    parkLayer === btn.value
+                      ? 'bg-[color:rgba(150,190,230,0.12)] text-white'
+                      : 'text-[color:#adc6e4] hover:bg-[color:rgba(150,190,230,0.08)]'
+                  }`}
+                >
+                  {btn.mobileLabel}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={`${MOBILE_CONTROL_WIDTH_CLASS} flex items-center justify-between gap-3`}>
+            <a
+              href={repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="View the source on GitHub"
+              title="View source on GitHub"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(4,17,31,0.62)] text-[var(--color-text-secondary)] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl transition-all hover:border-[color:rgba(150,190,230,0.18)] hover:bg-[color:rgba(150,190,230,0.08)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(150,190,230,0.24)]"
+            >
+              <Github className="h-[18px] w-[18px]" />
+            </a>
+
+            <button
+              onClick={() => setMobileLegendOpen((current) => !current)}
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl transition-all hover:bg-[color:rgba(150,190,230,0.08)]"
+            >
+              <Layers3 className="h-4 w-4 text-[color:#96bee6]" />
+              {MAP_COPY.legendButton}
+            </button>
+          </div>
 
           {mobileLegendOpen ? (
-            <div className="mt-2 w-[min(18rem,calc(100vw-1.5rem))] rounded-[1.1rem] bg-[color:rgba(4,17,31,0.62)] px-4 py-4 text-left text-xs text-[color:#adc6e4] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[color:#7e98b7]">
-                {MAP_COPY.legendTitle}
-              </div>
-              <div
-                className="mt-3 h-2.5 rounded-full"
-                style={{ background: 'linear-gradient(to right, #ff7a59, #eef2f5, #55c271)' }}
-              />
-              <div className="mt-2 flex justify-between text-[10px] text-[color:#7e98b7]">
-                <span>{MAP_COPY.belowBaseline}</span>
-                <span>{MAP_COPY.atBaseline}</span>
-                <span>{MAP_COPY.aboveBaseline}</span>
-              </div>
-              <div className="mt-3 text-[11px] leading-5 text-[color:#adc6e4]">
-                {MAP_COPY.legendNote}
-              </div>
+            <div className={`${MOBILE_CONTROL_WIDTH_CLASS} ${LEGEND_PANEL_CLASS}`}>
+              {legendContent}
             </div>
           ) : null}
         </div>
       ) : (
-        <div className="absolute bottom-6 right-6 z-10 w-[18rem] rounded-[1.05rem] bg-[color:rgba(4,17,31,0.62)] px-4 py-3 text-left shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[color:#7e98b7]">
-            {MAP_COPY.legendTitle}
+        <>
+          <div className="absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex flex-wrap justify-center gap-1 rounded-full bg-[color:rgba(4,17,31,0.62)] p-1.5 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
+            {layerButtons.map(btn => (
+              <button
+                key={btn.value}
+                onClick={() => onParkLayerChange?.(btn.value)}
+                className={`min-h-10 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                  parkLayer === btn.value
+                    ? 'bg-[color:rgba(150,190,230,0.12)] text-white'
+                    : 'text-[color:#adc6e4] hover:bg-[color:rgba(150,190,230,0.08)]'
+                }`}
+              >
+                {btn.desktopLabel}
+              </button>
+            ))}
           </div>
-          <div
-            className="h-2.5 w-full rounded-full"
-            style={{ background: 'linear-gradient(to right, #ff7a59, #eef2f5, #55c271)' }}
-          />
-          <div className="mt-2 flex w-full justify-between text-[10px] text-[color:#7e98b7]">
-            <span>{MAP_COPY.belowBaseline}</span>
-            <span>{MAP_COPY.atBaseline}</span>
-            <span>{MAP_COPY.aboveBaseline}</span>
+
+          <div className={`absolute bottom-6 right-6 z-10 w-[18rem] ${LEGEND_PANEL_CLASS}`}>
+            {legendContent}
           </div>
-          <div className="mt-2 text-[11px] text-[color:#adc6e4]">
-            {MAP_COPY.legendNote}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

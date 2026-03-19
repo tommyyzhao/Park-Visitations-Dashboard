@@ -20,7 +20,7 @@
 - Park search and park clicks still drive the detail panel as before.
 - The current redesign direction is explicitly map-first and dark-mode-first, with the map remaining the primary canvas on both desktop and mobile.
 - Desktop uses a fixed left insight dock that is flush to the left screen edge with no outer gap or container radius.
-- Mobile no longer uses the old 50/50 split. It uses a flush bottom drawer over a full-screen map plus separate floating action buttons for search and legend.
+- Mobile no longer uses the old 50/50 split. It uses a flush bottom drawer over a full-screen map plus a full-width top control dock for the park overlay toggle, GitHub link, and legend action.
 
 ## County Layer Stack
 - `counties_fill_base`: muted background fill for all counties.
@@ -30,8 +30,10 @@
 - `counties_selected_outline`: highlighted selected county line keyed by `county_fips`.
 
 ## Park Layer Stack
-- The isolated `National` and `State` modes still use dedicated `parks_national` and `parks_state` circle layers plus `parks_national_labels`.
+- Park dot size now comes from one shared sqrt-based expression on `visitor_counts_postcovid`, capped at 5,000 with a 4px minimum, so size meaning stays stable across `All` / `National` / `State`.
+- The isolated `National` and `State` modes still use dedicated `parks_national` and `parks_state` circle layers plus matching label layers.
 - `All` mode no longer uses a single `parks_all` layer. It uses a staged layer stack sourced from `labeled_change.pmtiles`: `all_national`, `all_state`, `all_local_top`, `all_local_major`, `all_local_regional`, `all_local_dense`, `all_local_full`.
+- `All` mode also turns on `parks_national_labels`, `parks_state_labels`, and `parks_all_labels`, so national/state labels can appear before the local-only text layer.
 - Local POIs in `All` mode are derived as `national === 0 && state === 0` and are revealed by `visitor_counts_postcovid` thresholds rather than geography.
 - The current `All`-mode zoom reveal is:
   - `< 4`: national only
@@ -85,13 +87,17 @@
 - The selected-state sidebar is now chart-first: compact hero summary, inline `View` toggle, chart directly under the summary, and metrics condensed into a smaller follow-up section so the chart stays above the fold.
 - The mobile drawer now uses stage-aware swipe collapse from the top handle/header, with a movement threshold so taps do not accidentally change sheet stage.
 - On mobile, selecting a county or park should immediately expand the drawer into the full detail state so the user lands directly on the hero metrics and chart.
-- Mobile search is no longer intended to live inside the drawer; it is a separate map action that opens a popup search surface.
+- Mobile search now lives in the bottom drawer and should show only the search row in the peek state; the old mobile empty-state card is intentionally removed.
 - The mobile drawer should not repeat desktop-style branding chrome such as the `Park Visitations` title or logo.
 
 ## Latest UI / Map Stability
 - The selected-state surface is intentionally carded again where it helps hierarchy: hero summary card, chart card, and a separate summary metrics section. The chart card owns the toggle context; the chart body should not repeat the park title.
-- The `Timeline / Pre / Post` toggle is now a dedicated segmented control inside the chart card rather than a floating text label.
-- The search button, legend button, and map-layer toggle now share the same translucent overlay treatment so the floating controls read as one system.
+- The `Timeline / Before / After` toggle is now a dedicated segmented control inside the chart card rather than a floating text label.
+- On mobile the chart header stacks vertically and hides the helper subtitle so the segmented toggle gets full width.
+- On mobile the top control dock is a safe-width full-width stack: row 1 is the `All / National / State` toggle, row 2 is the GitHub icon on the left and Legend button on the right.
+- The mobile legend popover uses the same width shell as the layer toggle, and the desktop legend remains bottom-right.
+- The legend itself is intentionally flat: `Legend` stays left-aligned, `Monthly visits` is centered above the size chart, and `Change vs before COVID-19` is centered above the color ramp with a small spacer restored before the color label.
+- Desktop park toggle labels are shortened to `All parks`, `National`, and `State`.
 - The mobile drawer can now be minimized by swiping down on the handle/header because drag handling uses a movement threshold and suppresses the follow-up click event.
 - Changing the `All / National / State` toggle now only updates layer visibility. The map camera is stored in refs and restored on load so the toggle does not reset position, zoom, bearing, or pitch.
 - `dashboard-rebuild/src/lib/pmtiles.ts` now provides a buffered PMTiles protocol helper so static archives are fetched once and served from memory slices.
@@ -112,8 +118,8 @@
 ## Current Mobile Architecture
 - The active mobile shell is composed of:
   - full-screen map
-  - top-left search action
-  - top-left legend action
+  - full-width top control dock with layer toggle on row 1
+  - GitHub icon and Legend button on row 2 at opposite ends
   - bottom flush drawer with staged heights
 - The outer mobile drawer wrapper must remain non-interactive outside the visible sheet so it does not steal touch/pan gestures from the map.
 - The inner mobile drawer must remain scrollable with its own `overflow-y-auto` content region.
@@ -147,6 +153,7 @@
   - a selected park with aggregate-only telemetry (for example `Lamar Valley`) now shows summary metrics plus a plausible sidebar graph instead of the chart empty state
 - During the redesign pass, `npm run build` continued to pass after the mobile drawer, search popup, legend relocation, and color-system changes.
 - `npm run build` also passed after the latest card re-balance, translucency normalization, mobile drawer swipe fix, and map-camera stability refactor.
+- The latest UI adjustments after that included the mobile chart header stack, removal of the mobile chart subtitle, full-width mobile top dock, and restoring the desktop legend after a brief regression.
 - Visual QA during the redesign relied on rendered desktop/mobile screenshots in headless Chrome with SwiftShader because normal headless WebGL crashed in `InteractiveMap`.
 - The latest verified redesign state includes:
   - mobile map interaction restored after fixing overlay hitboxes
@@ -221,14 +228,17 @@
   - `dashboard-rebuild/src/components/VisitationChart.tsx`
   - `dashboard-rebuild/src/components/HoverPreviewCard.tsx`
   - `dashboard-rebuild/src/index.css`
+  - `dashboard-rebuild/src/lib/copy.ts`
 - `dashboard-rebuild/src/lib/duckdb.ts` still carries pre-existing lint debt and was not the focus of the redesign work.
 
 ## Copy / Voice State
 - The app copy rewrite is complete and should remain the baseline unless product goals change.
 - Visible language now favors plain analytical phrasing over prototype speak:
   - `Loading data`, `Loading map`
-  - `All parks / National parks / State parks`
-  - `Average monthly visitation change`
+  - `All parks / National / State`
+  - `Legend`
+  - `Monthly visits`
+  - `Change vs before COVID-19`
   - `Below baseline / At baseline / Above baseline`
   - `Before COVID-19 / After COVID-19`
   - `Estimated trend / Unavailable`
