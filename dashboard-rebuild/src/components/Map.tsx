@@ -2,10 +2,10 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Layers3 } from 'lucide-react';
-import { Protocol } from 'pmtiles';
 import HoverPreviewCard from './HoverPreviewCard';
 import { queryCountyByFips } from '../lib/duckdb';
 import { normalizeCountyFips } from '../lib/county';
+import { createBufferedPmtilesProtocol, resolvePmtilesAssetUrl } from '../lib/pmtiles';
 import {
   getHoverFeatureKey,
   getStateNameFromCountyFips,
@@ -18,6 +18,10 @@ import {
 let pmtilesInitialized = false;
 const PARK_DOT_STROKE = '#04101f';
 const HOVER_INTENT_MS = 140;
+const PMTILES_ASSET_PATHS = {
+  parks: '/data/labeled_change.pmtiles',
+  county: '/data/county_change.pmtiles',
+} as const;
 const DIVERGING_COLOR_RAMP = [
   'interpolate', ['linear'], ['to-number', ['get', 'percent_change']],
   -1, '#ff7a59', 0, '#eef2f5', 1, '#55c271',
@@ -29,6 +33,20 @@ const DIVERGING_GLOW_RAMP = [
 
 type SelectedKind = 'park' | 'county' | null;
 type ParkLayerFilter = 'all' | 'national' | 'state';
+
+interface CameraState {
+  center: [number, number];
+  zoom: number;
+  bearing: number;
+  pitch: number;
+}
+
+const DEFAULT_CAMERA_STATE: CameraState = {
+  center: [-97, 38],
+  zoom: 4,
+  bearing: 0,
+  pitch: 0,
+};
 
 const COUNTY_LAYER_IDS = [
   'counties_fill_base',
@@ -138,6 +156,48 @@ function createLocalFilter(minVisitors?: number) {
   return filter;
 }
 
+function getLayerState(map: maplibregl.Map, layerId: string) {
+  if (!map.getLayer(layerId)) {
+    return { present: false, visibility: 'missing' as const };
+  }
+
+  return {
+    present: true,
+    visibility: map.getLayoutProperty(layerId, 'visibility') ?? 'visible',
+  };
+}
+
+function summarizeMapRegistration(map: maplibregl.Map) {
+  return {
+    styleLoaded: map.isStyleLoaded(),
+    sources: {
+      parks_data: Boolean(map.getSource('parks_data')),
+      county_data: Boolean(map.getSource('county_data')),
+    },
+    layers: {
+      counties_fill_base: getLayerState(map, 'counties_fill_base'),
+      counties_fill_data: getLayerState(map, 'counties_fill_data'),
+      counties_glow: getLayerState(map, 'counties_glow'),
+      counties_outline: getLayerState(map, 'counties_outline'),
+      counties_selected_outline: getLayerState(map, 'counties_selected_outline'),
+      all_national: getLayerState(map, 'all_national'),
+      all_state: getLayerState(map, 'all_state'),
+      all_local_top: getLayerState(map, 'all_local_top'),
+      all_local_major: getLayerState(map, 'all_local_major'),
+      all_local_regional: getLayerState(map, 'all_local_regional'),
+      all_local_dense: getLayerState(map, 'all_local_dense'),
+      all_local_full: getLayerState(map, 'all_local_full'),
+      parks_national: getLayerState(map, 'parks_national'),
+      parks_state: getLayerState(map, 'parks_state'),
+      parks_national_labels: getLayerState(map, 'parks_national_labels'),
+    },
+    filters: {
+      counties_fill_data: map.getFilter('counties_fill_data') ?? null,
+      counties_selected_outline: map.getFilter('counties_selected_outline') ?? null,
+    },
+  };
+}
+
 interface MapProps {
   isMobile?: boolean;
   parkLayer: ParkLayerFilter;
@@ -184,6 +244,9 @@ export default function InteractiveMap({
   const hoverIntentTimeoutRef = useRef<number | null>(null);
   const pendingHoverRef = useRef<HoverCandidate | null>(null);
   const activeHoverKeyRef = useRef<string | null>(null);
+  const cameraStateRef = useRef<CameraState>(DEFAULT_CAMERA_STATE);
+  const parkLayerRef = useRef<ParkLayerFilter>(parkLayer);
+  const selectedCountyFipsRef = useRef<string | null>(selectedCountyFips ?? null);
   const [zoom, setZoom] = useState(4);
   const [hoverPreview, setHoverPreview] = useState<HoverPreviewData | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
@@ -193,6 +256,28 @@ export default function InteractiveMap({
   useEffect(() => {
     activeLocationHandler.current = onSelectedLocation;
   }, [onSelectedLocation]);
+
+  useEffect(() => {
+    parkLayerRef.current = parkLayer;
+  }, [parkLayer]);
+
+  useEffect(() => {
+    selectedCountyFipsRef.current = selectedCountyFips ?? null;
+  }, [selectedCountyFips]);
+
+  const syncCameraState = useCallback((map: maplibregl.Map) => {
+    const center = map.getCenter();
+    const nextCameraState: CameraState = {
+      center: [center.lng, center.lat],
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: map.getPitch(),
+    };
+
+    cameraStateRef.current = nextCameraState;
+    setZoom(Math.round(nextCameraState.zoom * 10) / 10);
+    return nextCameraState;
+  }, []);
 
   const syncParkLayerVisibility = useCallback((map: maplibregl.Map, layer: ParkLayerFilter) => {
     const parkLayerIds = Array.from(new Set(Object.values(PARK_LAYER_VISIBILITY_MAP).flat()));
@@ -354,178 +439,194 @@ export default function InteractiveMap({
   }, []);
 
   const setupLayers = useCallback((map: maplibregl.Map) => {
-    if (!map.getSource('parks_data')) {
-      map.addSource('parks_data', {
-        type: 'vector',
-        url: 'pmtiles://data/labeled_change.pmtiles'
-      });
-    }
-    if (!map.getSource('county_data')) {
-      map.addSource('county_data', {
-        type: 'vector',
-        url: 'pmtiles://data/county_change.pmtiles'
-      });
-    }
+    const parksPmtilesUrl = resolvePmtilesAssetUrl(PMTILES_ASSET_PATHS.parks);
+    const countyPmtilesUrl = resolvePmtilesAssetUrl(PMTILES_ASSET_PATHS.county);
 
-    map.addLayer({
-      id: 'counties_fill_base',
-      type: 'fill',
-      source: 'county_data',
-      'source-layer': 'county_change',
-      minzoom: 0,
-      paint: {
-        'fill-color': '#071728',
-        'fill-opacity': 0.18
-      },
-      layout: { 'visibility': 'visible' }
+    console.info('[map] registering PMTiles-backed sources', {
+      parksPmtilesUrl,
+      countyPmtilesUrl,
     });
 
-    map.addLayer({
-      id: 'counties_fill_data',
-      type: 'fill',
-      source: 'county_data',
-      'source-layer': 'county_change',
-      minzoom: 0,
-      filter: ['==', ['to-number', ['get', 'has_data']], 1],
-      paint: {
-        'fill-color': DIVERGING_COLOR_RAMP,
-        'fill-opacity': 0.44
-      },
-      layout: { 'visibility': 'visible' }
-    });
-
-    map.addLayer({
-      id: 'counties_glow',
-      type: 'line',
-      source: 'county_data',
-      'source-layer': 'county_change',
-      minzoom: 0,
-      filter: ['==', ['to-number', ['get', 'has_data']], 1],
-      paint: {
-        'line-color': DIVERGING_GLOW_RAMP,
-        'line-width': 5,
-        'line-blur': 4,
-        'line-opacity': 0.45
-      },
-      layout: { 'visibility': 'visible' }
-    });
-
-    map.addLayer({
-      id: 'counties_outline',
-      type: 'line',
-      source: 'county_data',
-      'source-layer': 'county_change',
-      minzoom: 0,
-      paint: {
-        'line-color': 'rgba(3, 16, 31, 0.95)',
-        'line-width': 0.8,
-        'line-opacity': 0.6
-      },
-      layout: { 'visibility': 'visible' }
-    });
-
-    map.addLayer({
-      id: 'counties_selected_outline',
-      type: 'line',
-      source: 'county_data',
-      'source-layer': 'county_change',
-      minzoom: 0,
-      filter: ['==', ['get', 'county_fips'], '__none__'],
-      paint: {
-        'line-color': '#96bee6',
-        'line-width': 2.8,
-        'line-opacity': 1
-      },
-      layout: { 'visibility': 'visible' }
-    });
-
-    map.addLayer(createParkCircleLayer({
-      id: 'all_national',
-      filter: ['==', ['to-number', ['get', 'national']], 1],
-      minzoom: 0,
-      radius: ALL_MODE_RADIUS
-    }));
-
-    map.addLayer(createParkCircleLayer({
-      id: 'all_state',
-      filter: ['==', ['to-number', ['get', 'state']], 1],
-      minzoom: 4,
-      radius: ALL_MODE_RADIUS
-    }));
-
-    map.addLayer(createParkCircleLayer({
-      id: 'all_local_top',
-      filter: createLocalFilter(4000),
-      minzoom: 5,
-      maxzoom: 6,
-      radius: ALL_MODE_RADIUS
-    }));
-
-    map.addLayer(createParkCircleLayer({
-      id: 'all_local_major',
-      filter: createLocalFilter(1000),
-      minzoom: 6,
-      maxzoom: 7,
-      radius: ALL_MODE_RADIUS
-    }));
-
-    map.addLayer(createParkCircleLayer({
-      id: 'all_local_regional',
-      filter: createLocalFilter(450),
-      minzoom: 7,
-      maxzoom: 8,
-      radius: ALL_MODE_RADIUS
-    }));
-
-    map.addLayer(createParkCircleLayer({
-      id: 'all_local_dense',
-      filter: createLocalFilter(250),
-      minzoom: 8,
-      maxzoom: 9,
-      radius: ALL_MODE_RADIUS
-    }));
-
-    map.addLayer(createParkCircleLayer({
-      id: 'all_local_full',
-      filter: createLocalFilter(),
-      minzoom: 9,
-      radius: ALL_MODE_RADIUS
-    }));
-
-    map.addLayer(createParkCircleLayer({
-      id: 'parks_national',
-      filter: ['==', ['to-number', ['get', 'national']], 1],
-      minzoom: 3,
-      radius: FOCUSED_MODE_RADIUS
-    }));
-
-    map.addLayer(createParkCircleLayer({
-      id: 'parks_state',
-      filter: ['==', ['to-number', ['get', 'state']], 1],
-      minzoom: 3,
-      radius: FOCUSED_MODE_RADIUS
-    }));
-
-    map.addLayer({
-      id: 'parks_national_labels',
-      type: 'symbol',
-      source: 'parks_data',
-      'source-layer': 'labeled_change',
-      filter: ['==', ['to-number', ['get', 'national']], 1],
-      minzoom: 6,
-      layout: {
-        'text-field': ['get', 'location'],
-        'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
-        'text-radial-offset': 0.8,
-        'text-size': 11,
-        'visibility': 'visible'
-      },
-      paint: {
-        'text-color': '#ecf5ff',
-        'text-halo-color': '#03101f',
-        'text-halo-width': 1.5
+    try {
+      if (!map.getSource('parks_data')) {
+        map.addSource('parks_data', {
+          type: 'vector',
+          url: `pmtiles://${parksPmtilesUrl}`,
+        });
       }
-    });
+
+      if (!map.getSource('county_data')) {
+        map.addSource('county_data', {
+          type: 'vector',
+          url: `pmtiles://${countyPmtilesUrl}`,
+        });
+      }
+
+      map.addLayer({
+        id: 'counties_fill_base',
+        type: 'fill',
+        source: 'county_data',
+        'source-layer': 'county_change',
+        minzoom: 0,
+        paint: {
+          'fill-color': '#071728',
+          'fill-opacity': 0.18
+        },
+        layout: { 'visibility': 'visible' }
+      });
+
+      map.addLayer({
+        id: 'counties_fill_data',
+        type: 'fill',
+        source: 'county_data',
+        'source-layer': 'county_change',
+        minzoom: 0,
+        filter: ['==', ['to-number', ['get', 'has_data']], 1],
+        paint: {
+          'fill-color': DIVERGING_COLOR_RAMP,
+          'fill-opacity': 0.44
+        },
+        layout: { 'visibility': 'visible' }
+      });
+
+      map.addLayer({
+        id: 'counties_glow',
+        type: 'line',
+        source: 'county_data',
+        'source-layer': 'county_change',
+        minzoom: 0,
+        filter: ['==', ['to-number', ['get', 'has_data']], 1],
+        paint: {
+          'line-color': DIVERGING_GLOW_RAMP,
+          'line-width': 5,
+          'line-blur': 4,
+          'line-opacity': 0.45
+        },
+        layout: { 'visibility': 'visible' }
+      });
+
+      map.addLayer({
+        id: 'counties_outline',
+        type: 'line',
+        source: 'county_data',
+        'source-layer': 'county_change',
+        minzoom: 0,
+        paint: {
+          'line-color': 'rgba(3, 16, 31, 0.95)',
+          'line-width': 0.8,
+          'line-opacity': 0.6
+        },
+        layout: { 'visibility': 'visible' }
+      });
+
+      map.addLayer({
+        id: 'counties_selected_outline',
+        type: 'line',
+        source: 'county_data',
+        'source-layer': 'county_change',
+        minzoom: 0,
+        filter: ['==', ['get', 'county_fips'], '__none__'],
+        paint: {
+          'line-color': '#96bee6',
+          'line-width': 2.8,
+          'line-opacity': 1
+        },
+        layout: { 'visibility': 'visible' }
+      });
+
+      map.addLayer(createParkCircleLayer({
+        id: 'all_national',
+        filter: ['==', ['to-number', ['get', 'national']], 1],
+        minzoom: 0,
+        radius: ALL_MODE_RADIUS
+      }));
+
+      map.addLayer(createParkCircleLayer({
+        id: 'all_state',
+        filter: ['==', ['to-number', ['get', 'state']], 1],
+        minzoom: 4,
+        radius: ALL_MODE_RADIUS
+      }));
+
+      map.addLayer(createParkCircleLayer({
+        id: 'all_local_top',
+        filter: createLocalFilter(4000),
+        minzoom: 5,
+        maxzoom: 6,
+        radius: ALL_MODE_RADIUS
+      }));
+
+      map.addLayer(createParkCircleLayer({
+        id: 'all_local_major',
+        filter: createLocalFilter(1000),
+        minzoom: 6,
+        maxzoom: 7,
+        radius: ALL_MODE_RADIUS
+      }));
+
+      map.addLayer(createParkCircleLayer({
+        id: 'all_local_regional',
+        filter: createLocalFilter(450),
+        minzoom: 7,
+        maxzoom: 8,
+        radius: ALL_MODE_RADIUS
+      }));
+
+      map.addLayer(createParkCircleLayer({
+        id: 'all_local_dense',
+        filter: createLocalFilter(250),
+        minzoom: 8,
+        maxzoom: 9,
+        radius: ALL_MODE_RADIUS
+      }));
+
+      map.addLayer(createParkCircleLayer({
+        id: 'all_local_full',
+        filter: createLocalFilter(),
+        minzoom: 9,
+        radius: ALL_MODE_RADIUS
+      }));
+
+      map.addLayer(createParkCircleLayer({
+        id: 'parks_national',
+        filter: ['==', ['to-number', ['get', 'national']], 1],
+        minzoom: 3,
+        radius: FOCUSED_MODE_RADIUS
+      }));
+
+      map.addLayer(createParkCircleLayer({
+        id: 'parks_state',
+        filter: ['==', ['to-number', ['get', 'state']], 1],
+        minzoom: 3,
+        radius: FOCUSED_MODE_RADIUS
+      }));
+
+      map.addLayer({
+        id: 'parks_national_labels',
+        type: 'symbol',
+        source: 'parks_data',
+        'source-layer': 'labeled_change',
+        filter: ['==', ['to-number', ['get', 'national']], 1],
+        minzoom: 6,
+        layout: {
+          'text-field': ['get', 'location'],
+          'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+          'text-radial-offset': 0.8,
+          'text-size': 11,
+          'visibility': 'visible'
+        },
+        paint: {
+          'text-color': '#ecf5ff',
+          'text-halo-color': '#03101f',
+          'text-halo-width': 1.5
+        }
+      });
+    } catch (error) {
+      console.error('[map] layer/source registration failed', error);
+      throw error;
+    }
+
+    console.info('[map] registered map sources and layers', summarizeMapRegistration(map));
 
     const interactiveLayers = [...PARK_INTERACTIVE_LAYER_IDS, ...COUNTY_INTERACTIVE_LAYER_IDS];
 
@@ -599,36 +700,81 @@ export default function InteractiveMap({
 
   useEffect(() => {
     if (!pmtilesInitialized) {
-      const protocol = new Protocol();
+      const protocol = createBufferedPmtilesProtocol([
+        {
+          key: resolvePmtilesAssetUrl(PMTILES_ASSET_PATHS.parks),
+          url: resolvePmtilesAssetUrl(PMTILES_ASSET_PATHS.parks),
+        },
+        {
+          key: resolvePmtilesAssetUrl(PMTILES_ASSET_PATHS.county),
+          url: resolvePmtilesAssetUrl(PMTILES_ASSET_PATHS.county),
+        },
+      ]);
       maplibregl.addProtocol('pmtiles', protocol.tile);
+      console.info('[map] registered buffered PMTiles protocol');
       pmtilesInitialized = true;
     }
 
     if (!mapContainer.current || mapRef.current) return;
 
+    const initialCamera = cameraStateRef.current;
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-      center: [-97, 38],
-      zoom: 4,
+      center: initialCamera.center,
+      zoom: initialCamera.zoom,
+      bearing: initialCamera.bearing,
+      pitch: initialCamera.pitch,
     });
 
     mapRef.current = map;
 
     map.on('move', () => {
-      setZoom(Math.round(map.getZoom() * 10) / 10);
+      syncCameraState(map);
     });
 
     map.on('load', () => {
+      map.jumpTo(cameraStateRef.current);
+      syncCameraState(map);
       setupLayers(map);
-      syncParkLayerVisibility(map, parkLayer);
+      syncParkLayerVisibility(map, parkLayerRef.current);
+      if (selectedCountyFipsRef.current) {
+        map.setFilter('counties_selected_outline', ['==', ['get', 'county_fips'], selectedCountyFipsRef.current]);
+      } else {
+        map.setFilter('counties_selected_outline', ['==', ['get', 'county_fips'], '__none__']);
+      }
+      console.info('[map] map load complete', {
+        parkLayer: parkLayerRef.current,
+        ...summarizeMapRegistration(map),
+      });
+    });
+
+    map.on('error', (event) => {
+      console.error('[map] MapLibre error', event.error ?? event);
+    });
+
+    map.on('sourcedata', (event) => {
+      const sourceEvent = event as {
+        sourceId?: string;
+        isSourceLoaded?: boolean;
+      };
+
+      if (
+        sourceEvent.isSourceLoaded
+        && (sourceEvent.sourceId === 'parks_data' || sourceEvent.sourceId === 'county_data')
+      ) {
+        console.info('[map] source update', {
+          sourceId: sourceEvent.sourceId,
+          isSourceLoaded: sourceEvent.isSourceLoaded ?? null,
+        });
+      }
     });
 
     return () => {
       map.remove();
       mapRef.current = null;
     };
-  }, [parkLayer, setupLayers, syncParkLayerVisibility]);
+  }, [setupLayers, syncCameraState, syncParkLayerVisibility]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -680,20 +826,20 @@ export default function InteractiveMap({
         />
       ) : null}
 
-      <div className="absolute left-4 top-4 z-10 hidden rounded-full border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(4,17,31,0.68)] px-3 py-1.5 text-xs text-[color:#adc6e4] shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl md:block">
+      <div className="absolute left-4 top-4 z-10 hidden rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-1.5 text-xs text-[color:#adc6e4] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl md:block">
         Zoom: {zoom}
       </div>
 
       <div
-        className={`absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex flex-wrap justify-center gap-1 rounded-[1.1rem] border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(4,17,31,0.72)] p-1.5 shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl ${isMobile ? 'max-w-[calc(100vw-1.5rem)]' : ''}`}
+        className={`absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex flex-wrap justify-center gap-1 rounded-full bg-[color:rgba(4,17,31,0.62)] p-1.5 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl ${isMobile ? 'max-w-[calc(100vw-1.5rem)]' : ''}`}
       >
         {layerButtons.map(btn => (
           <button
             key={btn.value}
             onClick={() => onParkLayerChange?.(btn.value)}
-            className={`min-h-10 rounded-[0.95rem] px-3 py-1.5 text-xs font-medium transition-all ${
+            className={`min-h-10 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
               parkLayer === btn.value
-                ? 'bg-[linear-gradient(135deg,#1e407c,#96bee6)] text-white shadow-[0_12px_24px_rgba(30,64,124,0.34)]'
+                ? 'bg-[color:rgba(150,190,230,0.12)] text-white'
                 : 'text-[color:#adc6e4] hover:bg-[color:rgba(150,190,230,0.08)]'
             }`}
           >
@@ -706,23 +852,23 @@ export default function InteractiveMap({
         <div className="absolute left-3 top-[calc(env(safe-area-inset-top)+4.5rem)] z-10">
           <button
             onClick={() => setMobileLegendOpen((current) => !current)}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(4,17,31,0.74)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl"
           >
             <Layers3 className="h-4 w-4 text-[color:#96bee6]" />
             Legend
           </button>
 
           {mobileLegendOpen ? (
-            <div className="mt-2 w-[min(18rem,calc(100vw-1.5rem))] rounded-[1.2rem] border border-[color:rgba(150,190,230,0.14)] bg-[linear-gradient(180deg,rgba(8,24,46,0.94),rgba(4,14,28,0.94))] px-4 py-4 text-left text-xs text-[color:#adc6e4] shadow-[0_20px_45px_rgba(0,8,22,0.4)] backdrop-blur-xl">
+            <div className="mt-2 w-[min(18rem,calc(100vw-1.5rem))] rounded-[1.1rem] bg-[color:rgba(4,17,31,0.62)] px-4 py-4 text-left text-xs text-[color:#adc6e4] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
               <div className="mb-3 flex items-center gap-2">
-                <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 rounded-full border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(255,255,255,0.03)] p-1" />
+                <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 rounded-full bg-[color:rgba(255,255,255,0.03)] p-1" />
                 <div>
                   <div className="font-display text-sm font-semibold text-[color:#ecf5ff]">Park Visitations</div>
                   <div className="text-[10px] uppercase tracking-[0.22em] text-[color:#7e98b7]">Map legend</div>
                 </div>
               </div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[color:#7e98b7]">
-                Percent change in average monthly visits
+                Avg. monthly visit change
               </div>
               <div
                 className="mt-3 h-2.5 rounded-full"
@@ -734,15 +880,15 @@ export default function InteractiveMap({
                 <span>Gain</span>
               </div>
               <div className="mt-3 text-[11px] leading-5 text-[color:#adc6e4]">
-                County fills show change; park dots overlay point-based visitation sites.
+                County fills show change; park dots overlay visitation sites.
               </div>
             </div>
           ) : null}
         </div>
       ) : (
-        <div className="absolute bottom-6 right-6 z-10 w-[18rem] rounded-[1.1rem] border border-[color:rgba(150,190,230,0.16)] bg-[linear-gradient(180deg,rgba(8,24,46,0.92),rgba(4,14,28,0.92))] px-4 py-3 text-left shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl">
+        <div className="absolute bottom-6 right-6 z-10 w-[18rem] rounded-[1.05rem] bg-[color:rgba(4,17,31,0.62)] px-4 py-3 text-left shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[color:#7e98b7]">
-            Percent change in average monthly visits
+            Avg. monthly visit change
           </div>
           <div
             className="h-2.5 w-full rounded-full"

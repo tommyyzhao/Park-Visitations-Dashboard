@@ -18,7 +18,7 @@
   --color-data-positive: #55c271;
   --color-data-neutral: #d9e0e8;
   --color-data-negative: #ff7a59;
-  --shadow-panel: 0 24px 80px rgba(0, 10, 24, 0.44);
+  --shadow-panel: 0 16px 48px rgba(0, 10, 24, 0.34);
   --radius-panel: 2rem;
   --panel-gradient: linear-gradient(180deg, rgba(8, 25, 47, 0.92), rgba(4, 14, 28, 0.88));
 }
@@ -81,41 +81,30 @@ select {
 .dashboard-hero-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 1.55rem;
-  background: linear-gradient(160deg, rgba(8, 24, 46, 0.96), rgba(4, 14, 28, 0.92));
-  padding: 1.05rem;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, rgba(8, 25, 47, 0.96), rgba(4, 14, 28, 0.9));
+  padding: 1.05rem 1.05rem 1.1rem;
   box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(18px);
 }
 
 .dashboard-panel-section {
   position: relative;
+  overflow: hidden;
   border: 1px solid var(--color-border-soft);
-  border-radius: 1.45rem;
-  background: var(--panel-gradient);
-  padding: 0.95rem;
-  box-shadow: 0 16px 50px rgba(0, 8, 22, 0.28);
+  border-radius: 1.4rem;
+  background: linear-gradient(180deg, rgba(8, 25, 47, 0.9), rgba(4, 14, 28, 0.84));
+  padding: 1rem 1.05rem 1.05rem;
+  box-shadow: 0 14px 36px rgba(0, 10, 24, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.dashboard-panel-section + .dashboard-panel-section {
+  margin-top: 0.9rem;
 }
 
 .dashboard-section-kicker {
-  color: var(--color-text-tertiary);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-}
-
-.dashboard-metric-card {
-  border: 1px solid rgba(150, 190, 230, 0.1);
-  border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.025)),
-    rgba(4, 14, 28, 0.55);
-  padding: 0.8rem 0.9rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.dashboard-metric-label {
   color: var(--color-text-tertiary);
   font-size: 0.62rem;
   font-weight: 700;
@@ -123,28 +112,44 @@ select {
   text-transform: uppercase;
 }
 
+.dashboard-metric-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.dashboard-metric-label {
+  color: var(--color-text-tertiary);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
 .dashboard-metric-value {
-  margin-top: 0.35rem;
+  margin-top: 0.3rem;
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 1.2rem;
+  font-size: 1.12rem;
   font-weight: 600;
   letter-spacing: -0.04em;
   color: var(--color-text-primary);
 }
 
 .dashboard-metric-footnote {
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
   color: var(--color-text-tertiary);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
 }
 
 .maplibregl-popup-content,
 .mapboxgl-popup-content {
   background: linear-gradient(180deg, rgba(8, 24, 46, 0.98), rgba(4, 14, 28, 0.95)) !important;
   color: var(--color-text-primary) !important;
-  border: 1px solid var(--color-border-strong) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 24px 64px rgba(0, 10, 24, 0.45) !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 48px rgba(0, 10, 24, 0.36) !important;
   backdrop-filter: blur(18px);
 }
 

@@ -1,6 +1,7 @@
 import {
   lazy,
   Suspense,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -151,6 +152,7 @@ function App() {
   );
   const [mobileSheetStage, setMobileSheetStage] = useState<MobileSheetStage>('peek');
   const [mobileSheetOffset, setMobileSheetOffset] = useState<number | null>(null);
+  const sheetDragMovedRef = useRef(false);
   const sheetDragRef = useRef<{
     pointerId: number;
     startOffset: number;
@@ -201,14 +203,10 @@ function App() {
       return;
     }
 
-    if (selectedPark && mobileSheetStage === 'peek') {
-      setMobileSheetStage('full');
-    }
-
     if (!selectedPark && !searchTerm && searchResults.length === 0) {
       setMobileSheetStage('peek');
     }
-  }, [isMobileViewport, mobileSheetStage, searchResults.length, searchTerm, selectedPark]);
+  }, [isMobileViewport, searchResults.length, searchTerm, selectedPark]);
 
   const mobileSheetHeight = useMemo(() => {
     const availableHeight = Math.max(viewportHeight - 12, 480);
@@ -237,6 +235,7 @@ function App() {
   const handleSheetPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (!isMobileViewport) return;
 
+    sheetDragMovedRef.current = false;
     sheetDragRef.current = {
       pointerId: event.pointerId,
       startOffset: currentSheetOffset,
@@ -256,6 +255,9 @@ function App() {
       mobileSheetOffsets.peek,
     );
 
+    if (Math.abs(event.clientY - drag.startY) > 8) {
+      sheetDragMovedRef.current = true;
+    }
     setMobileSheetOffset(nextOffset);
   }, [mobileSheetOffsets.full, mobileSheetOffsets.peek]);
 
@@ -282,6 +284,17 @@ function App() {
     snapMobileSheet(nextStage);
     sheetDragRef.current = null;
   }, [mobileSheetOffset, mobileSheetOffsets, snapMobileSheet]);
+
+  const handleSheetToggleClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
+    if (sheetDragMovedRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      sheetDragMovedRef.current = false;
+      return;
+    }
+
+    snapMobileSheet(mobileSheetStage === 'full' ? 'half' : 'full');
+  }, [mobileSheetStage, snapMobileSheet]);
 
   const handleSelectPark = useCallback((park: LocationRecord) => {
     const kind = inferSelectedKind(park);
@@ -440,17 +453,17 @@ function App() {
 
   const renderSearchControls = (compact: boolean) => (
     <div className="grid gap-3">
-      <div className="grid grid-cols-2 gap-2 rounded-[1.1rem] border border-[color:var(--color-border-strong)] bg-[var(--color-surface-soft)] p-1.5">
+      <div className="grid grid-cols-2 gap-1.5">
         <button
           onClick={() => {
             setSearchTab('park');
             setSearchTerm('');
             setSearchResults([]);
           }}
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium transition-all ${
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-[0.9rem] px-3 text-sm font-medium transition-all ${
             searchTab === 'park'
-              ? 'bg-[linear-gradient(135deg,var(--color-accent-strong),rgba(150,190,230,0.86))] text-white shadow-[0_12px_24px_rgba(30,64,124,0.34)]'
-              : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.08)]'
+              ? 'bg-[color:rgba(150,190,230,0.12)] text-[var(--color-text-primary)]'
+              : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
           }`}
         >
           <TreePine className="h-4 w-4" />
@@ -462,10 +475,10 @@ function App() {
             setSearchTerm('');
             setSearchResults([]);
           }}
-          className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium transition-all ${
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-[0.9rem] px-3 text-sm font-medium transition-all ${
             searchTab === 'county'
-              ? 'bg-[linear-gradient(135deg,var(--color-accent-strong),rgba(150,190,230,0.86))] text-white shadow-[0_12px_24px_rgba(30,64,124,0.34)]'
-              : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.08)]'
+              ? 'bg-[color:rgba(150,190,230,0.12)] text-[var(--color-text-primary)]'
+              : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
           }`}
         >
           <Building2 className="h-4 w-4" />
@@ -485,7 +498,7 @@ function App() {
                 : 'Search counties like Los Angeles or Cook'
           }
           disabled={!isDbReady}
-          className="min-h-12 w-full rounded-[1.15rem] border border-[color:var(--color-border-strong)] bg-[linear-gradient(180deg,rgba(8,22,39,0.96),rgba(7,18,33,0.86))] py-3 pl-11 pr-11 text-sm text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition-all placeholder:text-[var(--color-text-tertiary)] focus:border-[color:rgba(150,190,230,0.32)] focus:shadow-[0_0_0_4px_rgba(150,190,230,0.12)] disabled:cursor-not-allowed disabled:opacity-70"
+          className="min-h-12 w-full rounded-[1rem] bg-[linear-gradient(180deg,rgba(8,22,39,0.88),rgba(7,18,33,0.78))] py-3 pl-11 pr-11 text-sm text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-inset ring-[color:rgba(150,190,230,0.08)] outline-none transition-all placeholder:text-[var(--color-text-tertiary)] focus:ring-[color:rgba(150,190,230,0.18)] focus:shadow-[0_0_0_3px_rgba(150,190,230,0.06)] disabled:cursor-not-allowed disabled:opacity-70"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
         />
@@ -494,7 +507,7 @@ function App() {
         ) : null}
 
         {searchResults.length > 0 ? (
-          <div className={`absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 max-h-72 overflow-y-auto rounded-[1.25rem] border border-[color:var(--color-border-strong)] bg-[linear-gradient(180deg,rgba(6,18,33,0.98),rgba(4,14,28,0.95))] p-1.5 shadow-[0_24px_70px_rgba(0,10,24,0.48)] backdrop-blur-2xl ${compact ? 'max-h-[min(50vh,18rem)]' : ''}`}>
+          <div className={`absolute inset-x-0 top-[calc(100%+0.5rem)] z-30 max-h-72 overflow-y-auto rounded-[1rem] bg-[linear-gradient(180deg,rgba(6,18,33,0.94),rgba(4,14,28,0.9))] p-[0.3125rem] shadow-[0_18px_44px_rgba(0,10,24,0.32)] backdrop-blur-2xl ${compact ? 'max-h-[min(50vh,18rem)]' : ''}`}>
             {searchResults.map((item, idx) => (
               <button
                 key={item.safegraph_place_id || `county-${idx}`}
@@ -522,33 +535,28 @@ function App() {
 
   const renderInsightSections = (mobile: boolean) => (
     <>
-      {selectedPark ? (
-        <>
-          <section className="dashboard-hero-card">
-            <div className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-br ${deltaAccent.glow}`} />
-            <div className="relative z-10 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:rgba(150,190,230,0.22)] bg-[color:rgba(150,190,230,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
+        {selectedPark ? (
+          <>
+            <section className="dashboard-hero-card">
+              <div className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-br ${deltaAccent.glow}`} />
+              <div className="relative z-10 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[color:rgba(150,190,230,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
                   <Sparkles className="h-3.5 w-3.5" />
                   {selectedBadge}
                 </div>
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${deltaAccent.badge}`}>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${deltaAccent.badge}`}>
                   {pctChangeValue == null ? 'Pending' : pctChangeValue > 0 ? 'Visits up' : pctChangeValue < 0 ? 'Visits down' : 'Flat'}
                 </span>
               </div>
-              <h2 className="mt-3 font-display text-[1.45rem] font-semibold leading-tight tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.72rem]">
+              <h2 className="mt-2 font-display text-[1.45rem] font-semibold leading-tight tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.72rem]">
                 {parkName}
               </h2>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:rgba(255,255,255,0.04)] px-2.5 py-1.5">
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:rgba(255,255,255,0.04)] px-2.5 py-1">
                   <MapPin className="h-3.5 w-3.5 text-[var(--color-accent)]" />
                   {selectedSubtitle}
                 </span>
-                {!mobile ? (
-                  <span className="text-xs text-[var(--color-text-tertiary)]">
-                    {selectedKind === 'county' ? 'County trend' : 'Park trend'}
-                  </span>
-                ) : null}
               </div>
             </div>
           </section>
@@ -556,22 +564,21 @@ function App() {
           <section className="dashboard-panel-section">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="dashboard-section-kicker">Visits</div>
+                <div className="font-display text-[1rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
+                  Monthly visits
+                </div>
                 <div className="mt-1 text-sm text-[var(--color-text-secondary)]">
                   {chartMode === 'line' ? 'Monthly timeline' : 'Pre- vs. post-COVID by month'}
                 </div>
               </div>
               <div className="min-w-0">
-                <div className="mb-2 text-right text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--color-text-tertiary)]">
-                  View
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 rounded-[1rem] border border-[color:var(--color-border-strong)] bg-[var(--color-surface-soft)] p-1">
+                <div className="inline-flex gap-1 rounded-[1rem] border border-[color:rgba(150,190,230,0.1)] bg-[color:rgba(255,255,255,0.03)] p-1">
                   <button
                     onClick={() => setChartMode('line')}
                     className={`flex min-h-9 items-center justify-center rounded-[0.85rem] px-3 text-xs font-medium transition-all ${
                       chartMode === 'line'
-                        ? 'bg-[linear-gradient(135deg,var(--color-accent-strong),rgba(150,190,230,0.86))] text-white shadow-[0_10px_18px_rgba(30,64,124,0.28)]'
-                        : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.08)]'
+                        ? 'bg-[color:rgba(150,190,230,0.14)] text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                        : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
                     }`}
                   >
                     Timeline
@@ -580,8 +587,8 @@ function App() {
                     onClick={() => setChartMode('overlay')}
                     className={`flex min-h-9 items-center justify-center rounded-[0.85rem] px-3 text-xs font-medium transition-all ${
                       chartMode === 'overlay'
-                        ? 'bg-[linear-gradient(135deg,var(--color-accent-strong),rgba(150,190,230,0.86))] text-white shadow-[0_10px_18px_rgba(30,64,124,0.28)]'
-                        : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.08)]'
+                        ? 'bg-[color:rgba(150,190,230,0.14)] text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]'
+                        : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
                     }`}
                   >
                     Pre / Post
@@ -594,14 +601,13 @@ function App() {
                 compact={mobile}
                 data={visitationData}
                 mode={chartMode}
-                parkName={parkName}
               />
             </div>
           </section>
 
           <section className="dashboard-panel-section">
             <div className="dashboard-section-kicker">Summary</div>
-            <div className="mt-3 grid grid-cols-2 gap-2.5 md:grid-cols-3">
+            <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
               <div className="dashboard-metric-card">
                 <div className="dashboard-metric-label">Pre-COVID</div>
                 <div className="dashboard-metric-value">{formatMetric(preCovidValue)}</div>
@@ -620,11 +626,11 @@ function App() {
             </div>
           </section>
         </>
-      ) : (
-        <section className="dashboard-panel-section overflow-hidden">
-          <div className="relative z-10">
-            <div className="dashboard-section-kicker">{mobile ? 'Choose a location' : 'Ready for selection'}</div>
-            <h2 className="mt-2 font-display text-[1.55rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
+          ) : (
+            <section className="dashboard-panel-section overflow-hidden">
+              <div className="relative z-10">
+                <div className="dashboard-section-kicker">{mobile ? 'Choose a location' : 'Ready for selection'}</div>
+                <h2 className="mt-2 font-display text-[1.55rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
               {mobile ? 'Tap the map or use search.' : 'Explore the national landscape.'}
             </h2>
             <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--color-text-secondary)]">
@@ -632,21 +638,21 @@ function App() {
                 ? 'Select a park or county to jump directly into its key metrics and visitation graph.'
                 : 'Search for a park or county, or tap the map to bring its visitation signature into focus.'}
             </p>
-            {!mobile ? (
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:rgba(150,190,230,0.22)] bg-[color:rgba(150,190,230,0.08)] px-3 py-2 text-xs text-[var(--color-accent)]">
-                  <Layers3 className="h-4 w-4" />
-                  Layer controls stay on-map
-                </div>
+                {!mobile ? (
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-[color:rgba(150,190,230,0.08)] px-3 py-2 text-xs text-[var(--color-accent)]">
+                      <Layers3 className="h-4 w-4" />
+                      Layer controls stay on-map
+                    </div>
+                  </div>
+                ) : null}
+                {!isDbReady ? (
+                  <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-[color:rgba(255,122,89,0.08)] px-3 py-2 text-xs text-[var(--color-data-negative)]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Initializing DuckDB engine
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-            {!isDbReady ? (
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[color:rgba(255,122,89,0.22)] bg-[color:rgba(255,122,89,0.08)] px-3 py-2 text-xs text-[var(--color-data-negative)]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Initializing DuckDB engine
-              </div>
-            ) : null}
-          </div>
         </section>
       )}
     </>
@@ -654,10 +660,10 @@ function App() {
 
   const renderPanelContent = () => (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="relative border-b border-[color:var(--color-border-strong)] px-5 pb-3 pt-4">
+      <div className="relative px-5 pb-2.5 pt-3">
         <div className="relative">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[1.1rem] border border-[color:rgba(150,190,230,0.22)] bg-[linear-gradient(145deg,rgba(150,190,230,0.18),rgba(30,64,124,0.28))] shadow-[0_16px_30px_rgba(0,10,24,0.35)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-[1.1rem] bg-[color:rgba(150,190,230,0.08)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 object-contain" />
             </div>
             <div className="min-w-0 flex-1">
@@ -676,11 +682,11 @@ function App() {
         </div>
       </div>
 
-      <div className="dashboard-scroll flex-1 overflow-y-auto px-5 pb-4 pt-4 space-y-3">
+      <div className="dashboard-scroll flex-1 overflow-y-auto space-y-2.5 px-5 pb-3 pt-3">
         {renderInsightSections(false)}
       </div>
 
-      <div className="border-t border-[color:rgba(150,190,230,0.12)] bg-[color:rgba(2,9,18,0.72)] px-4 py-3 text-[11px] text-[var(--color-text-tertiary)]">
+      <div className="px-5 py-2.5 text-[11px] text-[var(--color-text-tertiary)]">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <img src="/psu_logo.png" alt="Penn State logo" className="h-5 w-5 object-contain" />
@@ -729,7 +735,7 @@ function App() {
       </div>
 
       <div className="pointer-events-none absolute inset-y-0 left-0 z-30 hidden w-[27rem] md:block">
-        <div className="pointer-events-auto h-full w-full overflow-hidden border-r border-[color:var(--color-border-strong)] bg-[linear-gradient(180deg,rgba(5,18,33,0.96),rgba(4,14,28,0.92))] shadow-[0_18px_48px_rgba(0,8,22,0.36)] backdrop-blur-2xl">
+        <div className="pointer-events-auto h-full w-full overflow-hidden border-r border-[color:rgba(150,190,230,0.08)] bg-[linear-gradient(180deg,rgba(5,18,33,0.96),rgba(4,14,28,0.92))] shadow-[0_12px_32px_rgba(0,8,22,0.28)] backdrop-blur-2xl">
           {renderPanelContent()}
         </div>
       </div>
@@ -737,14 +743,14 @@ function App() {
       <div className="pointer-events-none absolute left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-50 md:hidden">
         <button
           onClick={() => setIsMobileSearchOpen((current) => !current)}
-          className="pointer-events-auto inline-flex min-h-10 items-center gap-2 rounded-full border border-[color:rgba(150,190,230,0.16)] bg-[color:rgba(4,17,31,0.78)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_20px_45px_rgba(0,8,22,0.38)] backdrop-blur-xl"
+          className="pointer-events-auto inline-flex min-h-10 items-center gap-2 rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl"
         >
           {isMobileSearchOpen ? <X className="h-4 w-4 text-[var(--color-accent)]" /> : <Search className="h-4 w-4 text-[var(--color-accent)]" />}
           {isMobileSearchOpen ? 'Close search' : 'Search'}
         </button>
 
         {isMobileSearchOpen ? (
-          <div className="pointer-events-auto mt-2 w-[calc(100vw-1.5rem)] max-w-sm rounded-[1.45rem] border border-[color:rgba(150,190,230,0.16)] bg-[linear-gradient(180deg,rgba(8,24,46,0.96),rgba(4,14,28,0.96))] p-4 shadow-[0_24px_60px_rgba(0,8,22,0.44)] backdrop-blur-2xl">
+          <div className="pointer-events-auto mt-2 w-[calc(100vw-1.5rem)] max-w-sm rounded-[1rem] bg-[color:rgba(4,17,31,0.62)] p-3.5 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--color-text-tertiary)]">Search locations</div>
@@ -752,7 +758,7 @@ function App() {
               </div>
               <button
                 onClick={() => setIsMobileSearchOpen(false)}
-                className="rounded-full border border-[color:rgba(150,190,230,0.16)] p-2 text-[var(--color-text-secondary)]"
+                className="rounded-full p-2 text-[var(--color-text-secondary)]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -767,11 +773,11 @@ function App() {
         style={{ height: `${mobileSheetHeight}px` }}
       >
         <div
-          className={`pointer-events-auto relative h-full overflow-hidden rounded-t-[1.8rem] border-x-0 border-b-0 border border-[color:var(--color-border-strong)] bg-[linear-gradient(180deg,rgba(5,18,33,0.97),rgba(4,14,28,0.95))] shadow-[0_-24px_90px_rgba(0,8,22,0.52)] backdrop-blur-2xl ${mobileSheetOffset == null ? 'transition-transform duration-300 ease-out' : ''}`}
+          className={`pointer-events-auto relative h-full overflow-hidden rounded-t-[1.65rem] border-t border-[color:rgba(150,190,230,0.06)] bg-[linear-gradient(180deg,rgba(5,18,33,0.97),rgba(4,14,28,0.95))] shadow-[0_-16px_48px_rgba(0,8,22,0.32)] backdrop-blur-2xl ${mobileSheetOffset == null ? 'transition-transform duration-300 ease-out' : ''}`}
           style={{ transform: `translateY(${currentSheetOffset}px)` }}
         >
           <div
-            className="flex flex-col items-center gap-2 border-b border-[color:rgba(255,255,255,0.05)] px-5 pb-3 pt-3"
+            className="flex flex-col items-center gap-2 px-5 pb-3 pt-3 touch-none select-none"
             onPointerCancel={handleSheetPointerEnd}
             onPointerDown={handleSheetPointerDown}
             onPointerMove={handleSheetPointerMove}
@@ -779,8 +785,8 @@ function App() {
           >
             <div className="h-1.5 w-16 rounded-full bg-[color:rgba(150,190,230,0.34)]" />
             <button
-              className="inline-flex items-center gap-2 rounded-full border border-[color:rgba(255,255,255,0.08)] bg-[color:rgba(255,255,255,0.04)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-text-secondary)]"
-              onClick={() => snapMobileSheet(mobileSheetStage === 'full' ? 'half' : 'full')}
+              className="inline-flex items-center gap-2 rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-1.5 text-[11px] font-medium text-[var(--color-text-secondary)] shadow-[0_12px_28px_rgba(0,8,22,0.22)] backdrop-blur-xl"
+              onClick={handleSheetToggleClick}
             >
               {mobileSheetStage === 'full' ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
               {selectedPark ? parkName : 'Tap map or search'}

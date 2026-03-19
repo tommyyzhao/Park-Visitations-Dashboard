@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -13,7 +12,6 @@ import {
 interface VisitationChartProps {
   compact?: boolean;
   data: Record<string, string | number | null | undefined>;
-  parkName: string;
   mode: 'line' | 'overlay';
 }
 
@@ -24,7 +22,6 @@ const NEUTRAL = '#d9e0e8';
 export default function VisitationChart({
   compact = false,
   data,
-  parkName,
   mode,
 }: VisitationChartProps) {
   const { lineData, overlayData } = useMemo(() => {
@@ -74,7 +71,7 @@ export default function VisitationChart({
 
   if (!data || Object.keys(data).length === 0) {
     return (
-      <div className="flex min-h-[15rem] flex-col items-center justify-center rounded-[1.35rem] border border-dashed border-[color:rgba(150,190,230,0.16)] bg-[linear-gradient(180deg,rgba(8,24,46,0.82),rgba(4,14,28,0.92))] px-6 text-center">
+      <div className="flex min-h-[13.5rem] flex-col items-center justify-center px-3 py-6 text-center">
         <div className="font-display text-lg font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
           No visitation data available
         </div>
@@ -86,39 +83,21 @@ export default function VisitationChart({
   }
 
   return (
-    <div className="overflow-hidden rounded-[1.4rem] border border-[color:rgba(150,190,230,0.14)] bg-[linear-gradient(180deg,rgba(8,24,46,0.86),rgba(4,14,28,0.9))]">
-      <div className="border-b border-[color:rgba(150,190,230,0.12)] px-4 py-3 md:px-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--color-text-tertiary)]">
-              {mode === 'line' ? 'Timeline' : 'Pre / Post'}
-            </div>
-            <div className="mt-1.5 font-display text-xl font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
-              {parkName}
-            </div>
-            <div className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              {mode === 'line'
-                ? 'Monthly visits over time.'
-                : 'Average month-by-month visits before and after February 2020.'}
-            </div>
-          </div>
-
-          {mode === 'overlay' ? (
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[color:rgba(217,224,232,0.22)] bg-[color:rgba(217,224,232,0.08)] px-2.5 py-1.5 text-[var(--color-data-neutral)]">
-                <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-data-neutral)]" />
-                Pre-COVID
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-[color:rgba(85,194,113,0.22)] bg-[color:rgba(85,194,113,0.08)] px-2.5 py-1.5 text-[var(--color-data-positive)]">
-                <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-data-positive)]" />
-                Post-COVID
-              </span>
-            </div>
-          ) : null}
+    <div className="space-y-3">
+      {mode === 'overlay' ? (
+        <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--color-text-secondary)]">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-data-neutral)]" />
+            Pre-COVID
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-data-positive)]" />
+            Post-COVID
+          </span>
         </div>
-      </div>
+      ) : null}
 
-      <div className={`px-3 pb-3 pt-3 md:px-4 md:pb-4 ${compact ? 'h-[18.5rem]' : 'h-[19.5rem]'}`}>
+      <div className={`${compact ? 'h-[18.5rem]' : 'h-[19.5rem]'}`}>
         <ResponsiveContainer width="100%" height="100%">
           {mode === 'line' ? (
             <LineChart data={lineData} margin={{ top: 10, right: compact ? 6 : 18, left: compact ? 2 : 8, bottom: 0 }}>
@@ -148,10 +127,10 @@ export default function VisitationChart({
                 cursor={{ stroke: 'rgba(150,190,230,0.25)', strokeDasharray: '4 4' }}
                 contentStyle={{
                   background: 'rgba(5, 18, 33, 0.96)',
-                  border: '1px solid rgba(150,190,230,0.18)',
-                  borderRadius: 18,
+                  border: '0',
+                  borderRadius: 14,
                   color: '#ecf5ff',
-                  boxShadow: '0 18px 40px rgba(0, 10, 24, 0.45)',
+                  boxShadow: '0 18px 40px rgba(0, 10, 24, 0.34)',
                 }}
                 labelStyle={{ color: '#adc6e4' }}
               />
@@ -184,16 +163,13 @@ export default function VisitationChart({
                 cursor={{ stroke: 'rgba(150,190,230,0.25)', strokeDasharray: '4 4' }}
                 contentStyle={{
                   background: 'rgba(5, 18, 33, 0.96)',
-                  border: '1px solid rgba(150,190,230,0.18)',
-                  borderRadius: 18,
+                  border: '0',
+                  borderRadius: 14,
                   color: '#ecf5ff',
-                  boxShadow: '0 18px 40px rgba(0, 10, 24, 0.45)',
+                  boxShadow: '0 18px 40px rgba(0, 10, 24, 0.34)',
                 }}
                 labelStyle={{ color: '#adc6e4' }}
               />
-              {!compact ? (
-                <Legend wrapperStyle={{ color: '#adc6e4', fontSize: 11, paddingTop: 8 }} />
-              ) : null}
               <Line
                 type="monotone"
                 dataKey="preCovid"

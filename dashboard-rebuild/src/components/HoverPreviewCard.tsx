@@ -27,7 +27,7 @@ function getTone(delta: number | null) {
       line: '#d9e0e8',
       fill: 'rgba(217, 224, 232, 0.16)',
       topGlow: 'from-[color:rgba(217,224,232,0.72)]',
-      badge: 'bg-[color:rgba(217,224,232,0.12)] text-[color:#e5f1ff] border-[color:rgba(217,224,232,0.22)]',
+      badge: 'bg-[color:rgba(217,224,232,0.08)] text-[color:#e5f1ff]',
       deltaText: 'text-[color:#ecf5ff]',
     };
   }
@@ -37,7 +37,7 @@ function getTone(delta: number | null) {
       line: '#55c271',
       fill: 'rgba(85, 194, 113, 0.16)',
       topGlow: 'from-[color:rgba(85,194,113,0.8)]',
-      badge: 'bg-[color:rgba(85,194,113,0.12)] text-[color:#def8e3] border-[color:rgba(85,194,113,0.24)]',
+      badge: 'bg-[color:rgba(85,194,113,0.08)] text-[color:#def8e3]',
       deltaText: 'text-[color:#55c271]',
     };
   }
@@ -47,7 +47,7 @@ function getTone(delta: number | null) {
       line: '#ff7a59',
       fill: 'rgba(255, 122, 89, 0.16)',
       topGlow: 'from-[color:rgba(255,122,89,0.8)]',
-      badge: 'bg-[color:rgba(255,122,89,0.12)] text-[color:#ffd9cf] border-[color:rgba(255,122,89,0.22)]',
+      badge: 'bg-[color:rgba(255,122,89,0.08)] text-[color:#ffd9cf]',
       deltaText: 'text-[color:#ff7a59]',
     };
   }
@@ -56,7 +56,7 @@ function getTone(delta: number | null) {
     line: '#d9e0e8',
     fill: 'rgba(217, 224, 232, 0.16)',
     topGlow: 'from-[color:rgba(217,224,232,0.72)]',
-    badge: 'bg-[color:rgba(217,224,232,0.12)] text-[color:#e5f1ff] border-[color:rgba(217,224,232,0.22)]',
+    badge: 'bg-[color:rgba(217,224,232,0.08)] text-[color:#e5f1ff]',
     deltaText: 'text-[color:#ecf5ff]',
   };
 }
@@ -117,14 +117,14 @@ function TrendPlaceholder({ empty }: { empty: boolean }) {
   if (empty) {
     return (
       <div className="flex h-[84px] items-center justify-center">
-        <div className="w-24 border-t border-dashed border-slate-600/80" />
+        <div className="h-px w-24 bg-[linear-gradient(90deg,transparent,rgba(126,152,183,0.7),transparent)]" />
       </div>
     );
   }
 
   return (
     <div className="flex h-[84px] items-center px-3">
-      <div className="h-full w-full animate-pulse rounded-2xl bg-gradient-to-r from-slate-700/30 via-slate-600/20 to-slate-700/30" />
+      <div className="h-full w-full animate-pulse rounded-[1rem] bg-gradient-to-r from-slate-700/20 via-slate-600/12 to-slate-700/20" />
     </div>
   );
 }
@@ -134,8 +134,8 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
   const [cardSize, setCardSize] = useState({ width: 312, height: 238 });
   const tone = getTone(preview.delta);
   const typeBadge = preview.kind === 'park'
-    ? 'bg-[color:rgba(150,190,230,0.12)] text-[color:#dff2ff] border-[color:rgba(150,190,230,0.2)]'
-    : 'bg-[color:rgba(30,64,124,0.22)] text-[color:#d5e8ff] border-[color:rgba(150,190,230,0.2)]';
+    ? 'bg-[color:rgba(150,190,230,0.08)] text-[color:#dff2ff]'
+    : 'bg-[color:rgba(30,64,124,0.18)] text-[color:#d5e8ff]';
 
   useLayoutEffect(() => {
     if (!cardRef.current) return;
@@ -158,15 +158,15 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
       style={{ left, top }}
       aria-hidden="true"
     >
-      <div className="relative overflow-hidden rounded-[22px] border border-[color:rgba(150,190,230,0.14)] bg-[linear-gradient(180deg,rgba(8,24,46,0.92),rgba(4,14,28,0.94))] shadow-[0_24px_70px_rgba(2,6,23,0.55)] backdrop-blur-2xl">
+      <div className="relative overflow-hidden rounded-[1rem] bg-[linear-gradient(180deg,rgba(8,24,46,0.88),rgba(4,14,28,0.92))] shadow-[0_16px_36px_rgba(2,6,23,0.32)] backdrop-blur-2xl">
         <div className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r ${tone.topGlow} via-white/20 to-transparent`} />
         <div className="pointer-events-none absolute -right-10 top-0 h-24 w-24 rounded-full bg-[color:rgba(150,190,230,0.08)] blur-3xl" />
 
-        <div className="space-y-4 p-4">
+        <div className="space-y-2.5 p-3.5">
           <div className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${typeBadge}`}>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${typeBadge}`}>
                   {preview.kind === 'park' ? 'Park' : 'County'}
                 </span>
                 <h3 className="mt-2 text-sm font-semibold leading-snug text-white">{preview.title}</h3>
@@ -175,28 +175,30 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
                 ) : null}
               </div>
 
-              <span className={`inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium ${tone.badge}`}>
+              <span className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-medium ${tone.badge}`}>
                 {preview.delta == null ? 'Neutral' : preview.delta > 0 ? 'Up' : preview.delta < 0 ? 'Down' : 'Flat'}
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-2xl border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(255,255,255,0.03)] px-3 py-2.5">
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="min-w-0">
               <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Pre-COVID</div>
               <div className="mt-1 text-sm font-semibold text-[color:#ecf5ff]">{formatMetric(preview.pre)}</div>
             </div>
-            <div className="rounded-2xl border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(255,255,255,0.03)] px-3 py-2.5">
+            <div className="min-w-0">
               <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Post-COVID</div>
               <div className="mt-1 text-sm font-semibold text-[color:#ecf5ff]">{formatMetric(preview.post)}</div>
             </div>
-            <div className="rounded-2xl border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(255,255,255,0.03)] px-3 py-2.5">
+            <div className="min-w-0">
               <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Delta</div>
               <div className={`mt-1 text-sm font-semibold ${tone.deltaText}`}>{formatDelta(preview.delta)}</div>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[20px] border border-[color:rgba(150,190,230,0.08)] bg-[color:rgba(255,255,255,0.025)]">
+          <div className="h-px bg-[linear-gradient(90deg,transparent,rgba(150,190,230,0.08),transparent)]" />
+
+          <div className="overflow-hidden">
             {preview.trendPoints.length > 1 ? (
               <MiniTrendSparkline points={preview.trendPoints} stroke={tone.line} fill={tone.fill} />
             ) : (
