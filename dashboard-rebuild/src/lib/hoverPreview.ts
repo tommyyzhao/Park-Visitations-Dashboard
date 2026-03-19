@@ -1,4 +1,5 @@
 import { normalizeCountyFips } from './county';
+import { HOVER_COPY } from './copy';
 
 const COVID_START = new Date('2020-02-28');
 const SYNTHETIC_TREND_START = new Date('2018-01-01');
@@ -182,8 +183,7 @@ function getCountySubtitle(props: Record<string, unknown>) {
   const stateName = asNonEmptyString(props.state_name) ?? getStateNameFromCountyFips(props.county_fips);
   if (stateName) return stateName;
 
-  const countyFips = normalizeCountyFips(props.county_fips);
-  return countyFips ? `FIPS ${countyFips}` : '';
+  return '';
 }
 
 export function getHoverFeatureKey(kind: HoverPreviewKind, props: Record<string, unknown>) {
@@ -283,7 +283,7 @@ function buildParkPreview(props: Record<string, unknown>): HoverPreviewData {
     featureKey: getHoverFeatureKey('park', props),
     title: asNonEmptyString(props.location) ?? asNonEmptyString(props.location_name) ?? 'Unknown Park',
     subtitle: getParkSubtitle(props),
-    status: hasTrend ? 'Modeled trend' : 'No telemetry available',
+    status: hasTrend ? HOVER_COPY.estimatedTrend : HOVER_COPY.unavailable,
     pre,
     post,
     delta,
@@ -303,7 +303,7 @@ function buildCountyPreview(props: Record<string, unknown>): HoverPreviewData {
     featureKey: getHoverFeatureKey('county', props),
     title: asNonEmptyString(props.county_ascii) ?? asNonEmptyString(props.county) ?? 'Unknown County',
     subtitle: getCountySubtitle(props),
-    status: hasMetrics ? null : 'No telemetry available',
+    status: hasMetrics ? null : HOVER_COPY.unavailable,
     pre,
     post,
     delta,
@@ -320,7 +320,7 @@ export function hydrateCountyPreview(
     const emptyPreview = buildCountyPreview(props);
     return {
       ...emptyPreview,
-      status: 'No telemetry available',
+      status: HOVER_COPY.unavailable,
       trendMode: 'none' as HoverTrendMode,
       trendPoints: [],
     };
@@ -339,7 +339,7 @@ export function hydrateCountyPreview(
     featureKey: getHoverFeatureKey('county', baseProps),
     title: asNonEmptyString(baseProps.county_ascii) ?? asNonEmptyString(baseProps.county) ?? 'Unknown County',
     subtitle: getCountySubtitle(baseProps),
-    status: hasTrend || hasMetrics ? null : 'No telemetry available',
+    status: hasTrend || hasMetrics ? null : HOVER_COPY.unavailable,
     pre,
     post,
     delta,

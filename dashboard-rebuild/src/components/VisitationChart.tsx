@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { APP_COPY, CHART_COPY } from '../lib/copy';
 
 interface VisitationChartProps {
   compact?: boolean;
@@ -73,10 +74,10 @@ export default function VisitationChart({
     return (
       <div className="flex min-h-[13.5rem] flex-col items-center justify-center px-3 py-6 text-center">
         <div className="font-display text-lg font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
-          No visitation data available
+          {CHART_COPY.noDataTitle}
         </div>
         <div className="mt-2 max-w-sm text-sm leading-6 text-[var(--color-text-secondary)]">
-          Historical data is unavailable for this location.
+          {CHART_COPY.noDataBody}
         </div>
       </div>
     );
@@ -88,11 +89,11 @@ export default function VisitationChart({
         <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--color-text-secondary)]">
           <span className="inline-flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-data-neutral)]" />
-            Pre-COVID
+            {APP_COPY.beforeCovid}
           </span>
           <span className="inline-flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-[var(--color-data-positive)]" />
-            Post-COVID
+            {APP_COPY.afterCovid}
           </span>
         </div>
       ) : null}
@@ -100,7 +101,7 @@ export default function VisitationChart({
       <div className={`${compact ? 'h-[18.5rem]' : 'h-[19.5rem]'}`}>
         <ResponsiveContainer width="100%" height="100%">
           {mode === 'line' ? (
-            <LineChart data={lineData} margin={{ top: 10, right: compact ? 6 : 18, left: compact ? 2 : 8, bottom: 0 }}>
+              <LineChart data={lineData} margin={{ top: 10, right: compact ? 6 : 18, left: compact ? 2 : 8, bottom: 0 }}>
               <defs>
                 <linearGradient id="timelineStroke" x1="0" y1="0" x2="1" y2="0">
                   <stop offset="0%" stopColor="#96bee6" />
@@ -144,7 +145,7 @@ export default function VisitationChart({
               />
             </LineChart>
           ) : (
-            <LineChart data={overlayData} margin={{ top: 10, right: compact ? 6 : 18, left: compact ? 2 : 8, bottom: 0 }}>
+              <LineChart data={overlayData} margin={{ top: 10, right: compact ? 6 : 18, left: compact ? 2 : 8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(150,190,230,0.12)" vertical={false} />
               <XAxis
                 dataKey="month"
@@ -173,7 +174,7 @@ export default function VisitationChart({
               <Line
                 type="monotone"
                 dataKey="preCovid"
-                name="Pre-COVID"
+                name={CHART_COPY.overlayBefore}
                 stroke={NEUTRAL}
                 strokeWidth={3}
                 dot={false}
@@ -182,7 +183,7 @@ export default function VisitationChart({
               <Line
                 type="monotone"
                 dataKey="postCovid"
-                name="Post-COVID"
+                name={CHART_COPY.overlayAfter}
                 stroke={POSITIVE}
                 strokeWidth={3}
                 dot={false}

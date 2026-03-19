@@ -6,6 +6,7 @@ import HoverPreviewCard from './HoverPreviewCard';
 import { queryCountyByFips } from '../lib/duckdb';
 import { normalizeCountyFips } from '../lib/county';
 import { createBufferedPmtilesProtocol, resolvePmtilesAssetUrl } from '../lib/pmtiles';
+import { MAP_COPY } from '../lib/copy';
 import {
   getHoverFeatureKey,
   getStateNameFromCountyFips,
@@ -247,7 +248,6 @@ export default function InteractiveMap({
   const cameraStateRef = useRef<CameraState>(DEFAULT_CAMERA_STATE);
   const parkLayerRef = useRef<ParkLayerFilter>(parkLayer);
   const selectedCountyFipsRef = useRef<string | null>(selectedCountyFips ?? null);
-  const [zoom, setZoom] = useState(4);
   const [hoverPreview, setHoverPreview] = useState<HoverPreviewData | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
   const [mobileLegendOpen, setMobileLegendOpen] = useState(false);
@@ -275,7 +275,6 @@ export default function InteractiveMap({
     };
 
     cameraStateRef.current = nextCameraState;
-    setZoom(Math.round(nextCameraState.zoom * 10) / 10);
     return nextCameraState;
   }, []);
 
@@ -337,7 +336,7 @@ export default function InteractiveMap({
   }, []);
 
   const hydrateCountyHoverPreview = useCallback(async (candidate: HoverCandidate, immediatePreview: HoverPreviewData) => {
-    if (candidate.kind !== 'county' || immediatePreview.status === 'No telemetry available') {
+    if (candidate.kind !== 'county' || immediatePreview.status === 'Unavailable') {
       return;
     }
 
@@ -804,9 +803,9 @@ export default function InteractiveMap({
   }, [selectedCoordinates, selectedKind]);
 
   const layerButtons: { label: string; value: ParkLayerFilter }[] = [
-    { label: 'All', value: 'all' },
-    { label: 'National', value: 'national' },
-    { label: 'State', value: 'state' },
+    { label: MAP_COPY.allParks, value: 'all' },
+    { label: MAP_COPY.nationalParks, value: 'national' },
+    { label: MAP_COPY.stateParks, value: 'state' },
   ];
 
   const hoverBounds = {
@@ -825,10 +824,6 @@ export default function InteractiveMap({
           bounds={hoverBounds}
         />
       ) : null}
-
-      <div className="absolute left-4 top-4 z-10 hidden rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-1.5 text-xs text-[color:#adc6e4] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl md:block">
-        Zoom: {zoom}
-      </div>
 
       <div
         className={`absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10 flex flex-wrap justify-center gap-1 rounded-full bg-[color:rgba(4,17,31,0.62)] p-1.5 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl ${isMobile ? 'max-w-[calc(100vw-1.5rem)]' : ''}`}
@@ -855,32 +850,25 @@ export default function InteractiveMap({
             className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[color:rgba(4,17,31,0.62)] px-3 py-2 text-xs font-medium text-[color:#ecf5ff] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl"
           >
             <Layers3 className="h-4 w-4 text-[color:#96bee6]" />
-            Legend
+            {MAP_COPY.legendButton}
           </button>
 
           {mobileLegendOpen ? (
             <div className="mt-2 w-[min(18rem,calc(100vw-1.5rem))] rounded-[1.1rem] bg-[color:rgba(4,17,31,0.62)] px-4 py-4 text-left text-xs text-[color:#adc6e4] shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
-              <div className="mb-3 flex items-center gap-2">
-                <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 rounded-full bg-[color:rgba(255,255,255,0.03)] p-1" />
-                <div>
-                  <div className="font-display text-sm font-semibold text-[color:#ecf5ff]">Park Visitations</div>
-                  <div className="text-[10px] uppercase tracking-[0.22em] text-[color:#7e98b7]">Map legend</div>
-                </div>
-              </div>
               <div className="text-[10px] font-semibold uppercase tracking-[0.26em] text-[color:#7e98b7]">
-                Avg. monthly visit change
+                {MAP_COPY.legendTitle}
               </div>
               <div
                 className="mt-3 h-2.5 rounded-full"
                 style={{ background: 'linear-gradient(to right, #ff7a59, #eef2f5, #55c271)' }}
               />
               <div className="mt-2 flex justify-between text-[10px] text-[color:#7e98b7]">
-                <span>Loss</span>
-                <span>Neutral</span>
-                <span>Gain</span>
+                <span>{MAP_COPY.belowBaseline}</span>
+                <span>{MAP_COPY.atBaseline}</span>
+                <span>{MAP_COPY.aboveBaseline}</span>
               </div>
               <div className="mt-3 text-[11px] leading-5 text-[color:#adc6e4]">
-                County fills show change; park dots overlay visitation sites.
+                {MAP_COPY.legendNote}
               </div>
             </div>
           ) : null}
@@ -888,19 +876,19 @@ export default function InteractiveMap({
       ) : (
         <div className="absolute bottom-6 right-6 z-10 w-[18rem] rounded-[1.05rem] bg-[color:rgba(4,17,31,0.62)] px-4 py-3 text-left shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[color:#7e98b7]">
-            Avg. monthly visit change
+            {MAP_COPY.legendTitle}
           </div>
           <div
             className="h-2.5 w-full rounded-full"
             style={{ background: 'linear-gradient(to right, #ff7a59, #eef2f5, #55c271)' }}
           />
           <div className="mt-2 flex w-full justify-between text-[10px] text-[color:#7e98b7]">
-            <span>Loss</span>
-            <span>Neutral</span>
-            <span>Gain</span>
+            <span>{MAP_COPY.belowBaseline}</span>
+            <span>{MAP_COPY.atBaseline}</span>
+            <span>{MAP_COPY.aboveBaseline}</span>
           </div>
           <div className="mt-2 text-[11px] text-[color:#adc6e4]">
-            County fills show change; park dots overlay visitation sites.
+            {MAP_COPY.legendNote}
           </div>
         </div>
       )}

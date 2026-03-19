@@ -13,7 +13,6 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
-  Layers3,
   Loader2,
   MapPin,
   Search,
@@ -22,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import VisitationChart from './components/VisitationChart';
+import { APP_COPY, CHART_COPY, HOVER_COPY } from './lib/copy';
 import {
   initDB,
   queryCounties,
@@ -450,6 +450,13 @@ function App() {
   const postCovidValue = coerceNumber(displayPostCovid);
   const pctChangeValue = coerceNumber(displayPctChange);
   const deltaAccent = getDeltaAccent(pctChangeValue);
+  const selectionStatusLabel = pctChangeValue == null
+    ? HOVER_COPY.unavailable
+    : pctChangeValue > 0
+      ? HOVER_COPY.aboveBaseline
+      : pctChangeValue < 0
+        ? HOVER_COPY.belowBaseline
+        : HOVER_COPY.atBaseline;
 
   const renderSearchControls = (compact: boolean) => (
     <div className="grid gap-3">
@@ -467,7 +474,7 @@ function App() {
           }`}
         >
           <TreePine className="h-4 w-4" />
-          Parks
+          {APP_COPY.parkTab}
         </button>
         <button
           onClick={() => {
@@ -482,7 +489,7 @@ function App() {
           }`}
         >
           <Building2 className="h-4 w-4" />
-          Counties
+          {APP_COPY.countyTab}
         </button>
       </div>
 
@@ -492,10 +499,10 @@ function App() {
           type="text"
           placeholder={
             !isDbReady
-              ? 'Loading DuckDB engine...'
+              ? APP_COPY.dataLoading
               : searchTab === 'park'
-                ? 'Search parks like Yellowstone or Central Park'
-                : 'Search counties like Los Angeles or Cook'
+                ? APP_COPY.parkSearchPlaceholder
+                : APP_COPY.countySearchPlaceholder
           }
           disabled={!isDbReady}
           className="min-h-12 w-full rounded-[1rem] bg-[linear-gradient(180deg,rgba(8,22,39,0.88),rgba(7,18,33,0.78))] py-3 pl-11 pr-11 text-sm text-[var(--color-text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-inset ring-[color:rgba(150,190,230,0.08)] outline-none transition-all placeholder:text-[var(--color-text-tertiary)] focus:ring-[color:rgba(150,190,230,0.18)] focus:shadow-[0_0_0_3px_rgba(150,190,230,0.06)] disabled:cursor-not-allowed disabled:opacity-70"
@@ -540,13 +547,13 @@ function App() {
             <section className="dashboard-hero-card">
               <div className={`pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-br ${deltaAccent.glow}`} />
               <div className="relative z-10 min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="inline-flex items-center gap-2 rounded-full bg-[color:rgba(150,190,230,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--color-accent)]">
                   <Sparkles className="h-3.5 w-3.5" />
                   {selectedBadge}
                 </div>
                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${deltaAccent.badge}`}>
-                  {pctChangeValue == null ? 'Pending' : pctChangeValue > 0 ? 'Visits up' : pctChangeValue < 0 ? 'Visits down' : 'Flat'}
+                  {selectionStatusLabel}
                 </span>
               </div>
               <h2 className="mt-2 font-display text-[1.45rem] font-semibold leading-tight tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.72rem]">
@@ -565,10 +572,10 @@ function App() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-display text-[1rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
-                  Monthly visits
+                  {APP_COPY.monthlyVisits}
                 </div>
                 <div className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                  {chartMode === 'line' ? 'Monthly timeline' : 'Pre- vs. post-COVID by month'}
+                  {chartMode === 'line' ? CHART_COPY.monthlyTrend : APP_COPY.beforeAfterByMonth}
                 </div>
               </div>
               <div className="min-w-0">
@@ -581,7 +588,7 @@ function App() {
                         : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
                     }`}
                   >
-                    Timeline
+                    {APP_COPY.timeline}
                   </button>
                   <button
                     onClick={() => setChartMode('overlay')}
@@ -591,7 +598,7 @@ function App() {
                         : 'text-[var(--color-text-secondary)] hover:bg-[color:rgba(150,190,230,0.06)]'
                     }`}
                   >
-                    Pre / Post
+                    {APP_COPY.beforeAfter}
                   </button>
                 </div>
               </div>
@@ -605,23 +612,23 @@ function App() {
             </div>
           </section>
 
-          <section className="dashboard-panel-section">
-            <div className="dashboard-section-kicker">Summary</div>
+            <section className="dashboard-panel-section">
+            <div className="dashboard-section-kicker">{APP_COPY.summary}</div>
             <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
               <div className="dashboard-metric-card">
-                <div className="dashboard-metric-label">Pre-COVID</div>
+                <div className="dashboard-metric-label">{APP_COPY.beforeCovid}</div>
                 <div className="dashboard-metric-value">{formatMetric(preCovidValue)}</div>
                 <div className="dashboard-metric-footnote">Monthly average</div>
               </div>
               <div className="dashboard-metric-card">
-                <div className="dashboard-metric-label">Post-COVID</div>
+                <div className="dashboard-metric-label">{APP_COPY.afterCovid}</div>
                 <div className="dashboard-metric-value">{formatMetric(postCovidValue)}</div>
                 <div className="dashboard-metric-footnote">Monthly average</div>
               </div>
               <div className="dashboard-metric-card col-span-2 md:col-span-1">
-                <div className="dashboard-metric-label">Delta</div>
+                <div className="dashboard-metric-label">Change</div>
                 <div className={`dashboard-metric-value ${deltaAccent.text}`}>{formatDelta(pctChangeValue)}</div>
-                <div className="dashboard-metric-footnote">Change vs. pre-COVID</div>
+                <div className="dashboard-metric-footnote">{APP_COPY.changeVsBeforeCovid}</div>
               </div>
             </div>
           </section>
@@ -629,27 +636,17 @@ function App() {
           ) : (
             <section className="dashboard-panel-section overflow-hidden">
               <div className="relative z-10">
-                <div className="dashboard-section-kicker">{mobile ? 'Choose a location' : 'Ready for selection'}</div>
+                <div className="dashboard-section-kicker">{mobile ? APP_COPY.chooseLocationKicker : APP_COPY.selectLocationKicker}</div>
                 <h2 className="mt-2 font-display text-[1.55rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)]">
-              {mobile ? 'Tap the map or use search.' : 'Explore the national landscape.'}
-            </h2>
-            <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--color-text-secondary)]">
-              {mobile
-                ? 'Select a park or county to jump directly into its key metrics and visitation graph.'
-                : 'Search for a park or county, or tap the map to bring its visitation signature into focus.'}
-            </p>
-                {!mobile ? (
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-[color:rgba(150,190,230,0.08)] px-3 py-2 text-xs text-[var(--color-accent)]">
-                      <Layers3 className="h-4 w-4" />
-                      Layer controls stay on-map
-                    </div>
-                  </div>
-                ) : null}
+                  {mobile ? APP_COPY.mobileHeadline : APP_COPY.desktopHeadline}
+                </h2>
+                <p className="mt-3 max-w-[28rem] text-sm leading-6 text-[var(--color-text-secondary)]">
+                  {mobile ? APP_COPY.mobileBody : APP_COPY.desktopBody}
+                </p>
                 {!isDbReady ? (
                   <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-[color:rgba(255,122,89,0.08)] px-3 py-2 text-xs text-[var(--color-data-negative)]">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Initializing DuckDB engine
+                    {APP_COPY.dataLoading}
                   </div>
                 ) : null}
               </div>
@@ -662,17 +659,17 @@ function App() {
     <div className="flex h-full flex-col overflow-hidden">
       <div className="relative px-5 pb-2.5 pt-3">
         <div className="relative">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[1.1rem] bg-[color:rgba(150,190,230,0.08)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-              <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 object-contain" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-display text-[1.35rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.6rem]">
-                Park Visitations
-              </div>
-              <p className="mt-1 max-w-[28rem] text-xs leading-5 text-[var(--color-text-secondary)] md:text-[0.82rem]">
-                Post-COVID visitation trends across parks and counties.
-              </p>
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-[1.1rem] bg-[color:rgba(150,190,230,0.08)] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                  <img src="/park-visitation-logo.png" alt="Park Visitations logo" className="h-7 w-7 object-contain" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display text-[1.35rem] font-semibold tracking-[-0.03em] text-[var(--color-text-primary)] md:text-[1.6rem]">
+                    {APP_COPY.name}
+                  </div>
+                  <p className="mt-1 max-w-[28rem] text-xs leading-5 text-[var(--color-text-secondary)] md:text-[0.82rem]">
+                    {APP_COPY.tagline}
+                  </p>
             </div>
           </div>
 
@@ -687,12 +684,11 @@ function App() {
       </div>
 
       <div className="px-5 py-2.5 text-[11px] text-[var(--color-text-tertiary)]">
-        <div className="flex items-center justify-between gap-3">
+        <div className="space-y-1">
           <div className="flex min-w-0 items-center gap-2">
             <img src="/psu_logo.png" alt="Penn State logo" className="h-5 w-5 object-contain" />
-            <span className="truncate">Penn State Recreation, Park, and Tourism Management</span>
+            <span className="truncate">{APP_COPY.footerAffiliation}</span>
           </div>
-          <span className="shrink-0">DuckDB + PMTiles + MapLibre</span>
         </div>
       </div>
     </div>
@@ -717,7 +713,7 @@ function App() {
                 <Loader2 className="absolute -bottom-1 -right-1 h-8 w-8 animate-spin text-[var(--color-accent)]" />
               </div>
               <p className="font-display text-sm uppercase tracking-[0.36em] text-[var(--color-text-tertiary)]">
-                Initializing map engine
+                {APP_COPY.mapLoading}
               </p>
             </div>
           )}
@@ -753,8 +749,8 @@ function App() {
           <div className="pointer-events-auto mt-2 w-[calc(100vw-1.5rem)] max-w-sm rounded-[1rem] bg-[color:rgba(4,17,31,0.62)] p-3.5 shadow-[0_16px_34px_rgba(0,8,22,0.26)] backdrop-blur-xl">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--color-text-tertiary)]">Search locations</div>
-                <div className="mt-1 text-sm text-[var(--color-text-secondary)]">Find a park or county, then jump straight into its metrics.</div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--color-text-tertiary)]">{APP_COPY.searchHeading}</div>
+                <div className="mt-1 text-sm text-[var(--color-text-secondary)]">{APP_COPY.searchHelp}</div>
               </div>
               <button
                 onClick={() => setIsMobileSearchOpen(false)}

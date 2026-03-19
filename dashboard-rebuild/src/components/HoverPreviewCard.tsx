@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { HoverPreviewData, TrendPoint } from '../lib/hoverPreview';
+import { HOVER_COPY } from '../lib/copy';
 
 interface HoverPreviewCardProps {
   preview: HoverPreviewData;
@@ -136,6 +137,13 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
   const typeBadge = preview.kind === 'park'
     ? 'bg-[color:rgba(150,190,230,0.08)] text-[color:#dff2ff]'
     : 'bg-[color:rgba(30,64,124,0.18)] text-[color:#d5e8ff]';
+  const deltaLabel = preview.delta == null
+    ? (preview.status === HOVER_COPY.estimatedTrend ? HOVER_COPY.estimatedTrend : HOVER_COPY.unavailable)
+    : preview.delta > 0
+      ? HOVER_COPY.aboveBaseline
+      : preview.delta < 0
+        ? HOVER_COPY.belowBaseline
+        : HOVER_COPY.atBaseline;
 
   useLayoutEffect(() => {
     if (!cardRef.current) return;
@@ -176,22 +184,22 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
               </div>
 
               <span className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-medium ${tone.badge}`}>
-                {preview.delta == null ? 'Neutral' : preview.delta > 0 ? 'Up' : preview.delta < 0 ? 'Down' : 'Flat'}
+                {deltaLabel}
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2.5">
             <div className="min-w-0">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Pre-COVID</div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">{HOVER_COPY.before}</div>
               <div className="mt-1 text-sm font-semibold text-[color:#ecf5ff]">{formatMetric(preview.pre)}</div>
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Post-COVID</div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">{HOVER_COPY.after}</div>
               <div className="mt-1 text-sm font-semibold text-[color:#ecf5ff]">{formatMetric(preview.post)}</div>
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">Delta</div>
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-[color:#7e98b7]">{HOVER_COPY.delta}</div>
               <div className={`mt-1 text-sm font-semibold ${tone.deltaText}`}>{formatDelta(preview.delta)}</div>
             </div>
           </div>
@@ -202,7 +210,7 @@ export default function HoverPreviewCard({ preview, position, bounds }: HoverPre
             {preview.trendPoints.length > 1 ? (
               <MiniTrendSparkline points={preview.trendPoints} stroke={tone.line} fill={tone.fill} />
             ) : (
-              <TrendPlaceholder empty={preview.status === 'No telemetry available'} />
+              <TrendPlaceholder empty={preview.status === HOVER_COPY.unavailable} />
             )}
           </div>
 
