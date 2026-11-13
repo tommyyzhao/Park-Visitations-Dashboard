@@ -7,8 +7,7 @@ import {ArcLayer} from '@deck.gl/layers'
 // eslint-disable-next-line import/no-webpack-loader-syntax
 mapboxgl.workerClass = require('worker-loader!mapbox-gl/dist/mapbox-gl-csp-worker').default;
 
-mapboxgl.accessToken =
-'pk.eyJ1IjoienRvbXMiLCJhIjoiY2tucTQ5ajhiMGE1dDJxcXZueTg4eTVrNiJ9.ChK9cBOSuoX-v1thHfM43A';
+mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
 // Adapted from https://reactjs.org/docs/react-component.html
 class MapComponent extends React.PureComponent {

@@ -1,9 +1,6 @@
-import mongoose from 'mongoose';
 import duckdb from 'duckdb';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const ATLAS_URI = 'mongodb+srv://park:visitations@parkvisitations.mgpda.mongodb.net/ParkVisitations?retryWrites=true&w=majority';
 
 // Fixed db path for ESM
 const dbPath = './dashboard.sqlite';
